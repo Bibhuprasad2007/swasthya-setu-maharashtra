@@ -4,9 +4,9 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { DoctorPortalProvider } from './context/DoctorPortalContext';
+import { LabPortalProvider } from './context/LabPortalContext';
 import { PortalSelectPage } from './pages/PortalSelectPage';
 import { PortalLoginPage } from './pages/PortalLoginPage';
-import { LaboratoryDashboard } from './pages/dashboards/LaboratoryDashboard';
 import { PharmacyDashboard } from './pages/dashboards/PharmacyDashboard';
 import { AdminDashboard } from './pages/dashboards/AdminDashboard';
 import { ProtectedRoute } from './components/routes/ProtectedRoute';
@@ -26,13 +26,21 @@ import { FollowUpsPage } from './pages/hospital/FollowUpsPage';
 import { FacilityStatusPage } from './pages/hospital/FacilityStatusPage';
 import { ReportsPage } from './pages/hospital/ReportsPage';
 
+// Diagnostic Lab Portal Pages
+import { LabDashboardPage } from './pages/lab/LabDashboardPage';
+import { LabTestOrdersPage } from './pages/lab/LabTestOrdersPage';
+import { LabSampleTrackingPage } from './pages/lab/LabSampleTrackingPage';
+import { LabResultEntryPage } from './pages/lab/LabResultEntryPage';
+import { LabReportsPage } from './pages/lab/LabReportsPage';
+
 export const App: React.FC = () => {
   return (
     <ThemeProvider>
       <LanguageProvider>
         <AuthProvider>
           <DoctorPortalProvider>
-            <BrowserRouter>
+            <LabPortalProvider>
+              <BrowserRouter>
               <Routes>
                 {/* Main Portal Selection Landing Page */}
                 <Route path="/" element={<PortalSelectPage />} />
@@ -151,16 +159,53 @@ export const App: React.FC = () => {
                   }
                 />
 
-                {/* Other Blank Workspace Role-Based Portals (Untouched) */}
+                {/* Diagnostic Lab Portal Routes */}
+                <Route
+                  path="/laboratory"
+                  element={<Navigate to="/laboratory/dashboard" replace />}
+                />
                 <Route
                   path="/laboratory/dashboard"
                   element={
                     <ProtectedRoute allowedRole="laboratory">
-                      <LaboratoryDashboard />
+                      <LabDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/laboratory/test-orders"
+                  element={
+                    <ProtectedRoute allowedRole="laboratory">
+                      <LabTestOrdersPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/laboratory/samples"
+                  element={
+                    <ProtectedRoute allowedRole="laboratory">
+                      <LabSampleTrackingPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/laboratory/result-entry"
+                  element={
+                    <ProtectedRoute allowedRole="laboratory">
+                      <LabResultEntryPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/laboratory/reports"
+                  element={
+                    <ProtectedRoute allowedRole="laboratory">
+                      <LabReportsPage />
                     </ProtectedRoute>
                   }
                 />
 
+                {/* Other Blank Workspace Role-Based Portals (Untouched) */}
                 <Route
                   path="/pharmacy/dashboard"
                   element={
@@ -183,6 +228,7 @@ export const App: React.FC = () => {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
+            </LabPortalProvider>
           </DoctorPortalProvider>
         </AuthProvider>
       </LanguageProvider>

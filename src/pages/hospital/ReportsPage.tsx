@@ -63,7 +63,7 @@ export const ReportsPage: React.FC = () => {
       totalAppointments: totalApts,
       aptCompletionRate,
       noShowRate,
-      avgWaitMinutes: dashboardStats.avgWaitTimeMinutes || 18,
+      avgWaitMinutes: dashboardStats.avgWaitMinutes || 18,
       consultationsCount: consultations.length + 24,
       highRiskCount: highRiskPatients,
       labOrdersCount: totalLabs,

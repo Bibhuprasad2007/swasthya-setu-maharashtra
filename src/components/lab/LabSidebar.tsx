@@ -62,7 +62,7 @@ export const LabSidebar: React.FC<LabSidebarProps> = ({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1" aria-label="Laboratory Navigation">
-        {NAV_ITEMS.map(({ to, label, icon: Icon, key }) => {
+        {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
           const active = isActive(to);
           const badge = badges[to];
           return (

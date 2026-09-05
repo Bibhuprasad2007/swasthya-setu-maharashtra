@@ -12,12 +12,9 @@ import {
   LabActivityItem,
   LabToastMessage,
   LabDoctorNotification,
-  LabOrderStatus,
-  SampleStatus,
   ResultParameter,
   canTransition,
   LabOrderTimelineEntry,
-  LabPriority,
 } from '../types/lab';
 import {
   INITIAL_LAB_ORDERS,
@@ -311,7 +308,7 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const markSampleReceived = useCallback((sampleId: string, by: string) => {
     dispatch({ type: 'UPDATE_SAMPLE', payload: { id: sampleId, status: 'received', receivedAt: now() } });
-    addToast({ type: 'info', title: 'Sample Received', message: 'Sample marked as received in laboratory.' });
+    addToast({ type: 'info', title: 'Sample Received', message: `Sample ${sampleId} marked as received by ${by}.` });
   }, [addToast]);
 
   const startProcessing = useCallback((sampleId: string, orderId: string, by: string) => {
