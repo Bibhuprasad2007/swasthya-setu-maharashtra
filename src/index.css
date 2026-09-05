@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --surface-elevated: #ffffff;
+    --foreground: #0f172a;
+    --muted-foreground: #64748b;
+    --border: #e2e8f0;
+    --primary: #0284c7;
+    --primary-foreground: #ffffff;
+    --accent: #0d9488;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --focus-ring: #0284c7;
+  }
+
+  .dark {
+    --background: #071521;
+    --surface: #0d2233;
+    --surface-elevated: #112a3d;
+    --foreground: #f4f9fc;
+    --muted-foreground: #a9bdc9;
+    --border: #294457;
+    --primary: #38bdf8;
+    --primary-foreground: #071521;
+    --accent: #2dd4bf;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --focus-ring: #38bdf8;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    @apply antialiased transition-colors duration-200;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Subtle polished medical pattern backgrounds */
+.medical-bg-pattern {
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(14, 165, 233, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(20, 184, 166, 0.08) 0%, transparent 40%),
+    radial-gradient(#cbd5e1 0.75px, transparent 0.75px);
+  background-size: 100% 100%, 100% 100%, 28px 28px;
+}
+
+.dark .medical-bg-pattern {
+  background-image: 
+    radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.09) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(45, 212, 191, 0.08) 0%, transparent 45%),
+    radial-gradient(#1e3a52 0.75px, transparent 0.75px);
+  background-size: 100% 100%, 100% 100%, 28px 28px;
+}
+
+/* Heartbeat pulse micro-animation */
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.15); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.15); }
+  70% { transform: scale(1); }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Accessible focus visible default */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: initial !important;
+    scroll-behavior: auto !important;
+    transition-delay: 0s !important;
+    transition-duration: 0s !important;
+  }
+}
