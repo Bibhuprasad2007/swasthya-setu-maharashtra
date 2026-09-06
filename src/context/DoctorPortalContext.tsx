@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, useEffect } from 'react';
 import {
   PatientRecord,
   AppointmentItem,
@@ -26,6 +26,7 @@ import {
   INITIAL_FOLLOW_UPS,
   INITIAL_FACILITY_CAPACITY
 } from '../data/doctorMockData';
+import { firebaseDataService } from '../services/firebaseDataService';
 
 interface ComputedStats {
   todayAppointmentsCount: number;
@@ -156,6 +157,19 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [facilityCapacity, setFacilityCapacity] = useState<FacilityCapacity>(() => INITIAL_FACILITY_CAPACITY);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+  // Firebase Real-time Synchronization for Patients
+  useEffect(() => {
+    const unsubscribe = firebaseDataService.subscribeToCollection<PatientRecord>(
+      'patients',
+      (data) => {
+        if (data.length > 0) {
+          setPatients(data);
+        }
+      }
+    );
+    return () => unsubscribe();
+  }, []);
+
   // Active workspace selections
   const [activeConsultationPatient, setActiveConsultationPatient] = useState<PatientRecord | null>(null);
   const [activeQueueItem, setActiveQueueItem] = useState<QueuePatientItem | null>(null);
@@ -235,24 +249,40 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     setPatients((prev) => [newPatient, ...prev]);
+
+    firebaseDataService.addDocument('patients', newPatient).catch((err) => {
+      console.warn('Could not sync new patient with Firestore:', err);
+    });
+
     addToast({
       type: 'success',
       title: 'Patient Registered',
       message: `${newPatient.name} assigned Patient ID: ${patientId}`
     });
+
     return newPatient;
   }, [patients.length, addToast]);
 
-  const updatePatient = useCallback((patientId: string, updates: Partial<PatientRecord>) => {
-    setPatients((prev) =>
-      prev.map((p) => (p.id === patientId || p.patientId === patientId ? { ...p, ...updates } : p))
-    );
-    addToast({
-      type: 'info',
-      title: 'Patient Updated',
-      message: 'Patient clinical details updated successfully.'
-    });
-  }, [addToast]);
+  const updatePatient = useCallback(async (patientId: string, updates: Partial<PatientRecord>) => {
+    try {
+      // Find the internal Firestore ID (id) if we only have the business patientId
+      const patient = patients.find((p) => p.id === patientId || p.patientId === patientId);
+      const docId = patient?.id || patientId;
+
+      await firebaseDataService.updateDocument('patients', docId, updates);
+      addToast({
+        type: 'info',
+        title: 'Patient Updated',
+        message: 'Patient clinical details updated successfully.'
+      });
+    } catch (err) {
+      addToast({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Could not update patient details.'
+      });
+    }
+  }, [patients, addToast]);
 
   const getPatientById = useCallback((patientId: string) => {
     return patients.find((p) => p.id === patientId || p.patientId === patientId);

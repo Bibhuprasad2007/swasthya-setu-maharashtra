@@ -1,6 +1,8 @@
 import { AuthResponse, LoginAuditLog, LoginCredentials, UserProfile } from '../types/auth';
-import { ApiError, request, USE_MOCK_AUTH } from './api';
-import { MOCK_ACCOUNTS } from './mockAuthData';
+import { ApiError } from './api';
+import { auth, db } from './firebase';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 
 const AUDIT_LOGS_KEY = 'swasthya_audit_logs';
 
@@ -26,126 +28,87 @@ export function recordAuditLog(log: Omit<LoginAuditLog, 'timestamp'>): void {
 }
 
 /**
- * Main Authentication Service
+ * Main Authentication Service using Firebase
  */
 export const authService = {
   /**
-   * Authenticate user against selected healthcare portal
+   * Authenticate user against Firebase Auth and verify details in Firestore
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     const { identifier, password, facilityCode, portal } = credentials;
 
-    // Use mock auth simulation in prototype mode
-    if (USE_MOCK_AUTH) {
-      // Simulate network latency (400ms - 800ms) for realistic UX
-      await new Promise((resolve) => setTimeout(resolve, 600));
+    try {
+      // 1. Firebase Authentication
+      const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
+      const firebaseUser = userCredential.user;
 
-      // Sanitize inputs
-      const cleanId = identifier.trim();
-      const cleanCode = facilityCode.trim().toUpperCase();
+      // 2. Verify Role and Facility in Firestore
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-      // Find matching mock account
-      const matchedAccount = MOCK_ACCOUNTS.find(
-        (acc) => acc.identifier.toUpperCase() === cleanId.toUpperCase()
-      );
-
-      if (!matchedAccount) {
-        recordAuditLog({
-          portal,
-          identifier: cleanId,
-          facilityCode: cleanCode,
-          status: 'FAILED'
-        });
-        throw new ApiError('Invalid identification credentials or facility code.', 401);
+      if (!userDocSnap.exists()) {
+        await signOut(auth);
+        recordAuditLog({ portal, identifier, facilityCode, status: 'FAILED' });
+        throw new ApiError('User profile not found in database.', 404);
       }
 
-      // Check portal role authorization (Backend role verification simulation)
-      if (matchedAccount.portal !== portal) {
-        recordAuditLog({
-          portal,
-          identifier: cleanId,
-          facilityCode: cleanCode,
-          status: 'FAILED'
-        });
+      const userData = userDocSnap.data();
+
+      // Verify portal authorization
+      if (userData.portal !== portal) {
+        await signOut(auth);
+        recordAuditLog({ portal, identifier, facilityCode, status: 'FAILED' });
         throw new ApiError(
-          `Access Denied: Account is authorized for ${matchedAccount.portal.toUpperCase()} portal, not ${portal.toUpperCase()}.`,
+          `Access Denied: Account is authorized for ${userData.portal.toUpperCase()} portal, not ${portal.toUpperCase()}.`,
           403,
           'ROLE_MISMATCH'
         );
       }
 
-      // Check facility code
-      if (matchedAccount.facilityCode.toUpperCase() !== cleanCode) {
-        recordAuditLog({
-          portal,
-          identifier: cleanId,
-          facilityCode: cleanCode,
-          status: 'FAILED'
-        });
+      // Verify facility code
+      if (userData.facilityCode?.toUpperCase() !== facilityCode.trim().toUpperCase()) {
+        await signOut(auth);
+        recordAuditLog({ portal, identifier, facilityCode, status: 'FAILED' });
         throw new ApiError('Invalid facility or department code for this account.', 401);
-      }
-
-      // Check password
-      if (matchedAccount.password !== password) {
-        recordAuditLog({
-          portal,
-          identifier: cleanId,
-          facilityCode: cleanCode,
-          status: 'FAILED'
-        });
-        throw new ApiError('Invalid password. Please check your credentials.', 401);
       }
 
       // Login success
       recordAuditLog({
         portal,
-        identifier: cleanId,
-        facilityCode: cleanCode,
+        identifier,
+        facilityCode,
         status: 'SUCCESS'
       });
 
+      const token = await firebaseUser.getIdToken();
+
       const userProfile: UserProfile = {
-        ...matchedAccount.profile,
+        ...userData.profile,
+        uid: firebaseUser.uid,
+        email: firebaseUser.email || '',
         lastLoginAt: new Date().toISOString()
       };
 
       return {
         success: true,
         user: userProfile,
-        token: 'mock_jwt_session_' + Date.now(),
-        expiresIn: 1800, // 30 minutes in seconds
+        token,
+        expiresIn: 3600, // Firebase tokens typically last 1 hour
         message: 'Authentication successful'
       };
-    }
-
-    // Production / Real Backend Endpoint: POST /api/auth/login
-    try {
-      const response = await request<AuthResponse>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          identifier: identifier.trim(),
-          password,
-          facilityCode: facilityCode.trim(),
-          portal
-        })
-      });
-
+    } catch (err: any) {
       recordAuditLog({
         portal,
-        identifier: identifier.trim(),
-        facilityCode: facilityCode.trim(),
-        status: 'SUCCESS'
-      });
-
-      return response;
-    } catch (err: unknown) {
-      recordAuditLog({
-        portal,
-        identifier: identifier.trim(),
-        facilityCode: facilityCode.trim(),
+        identifier,
+        facilityCode,
         status: 'FAILED'
       });
-      throw err;
+
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        throw new ApiError('Invalid email or password. Please check your credentials.', 401);
+      }
+
+      throw err instanceof ApiError ? err : new ApiError(err.message || 'Login failed', 500);
     }
   },
 
@@ -153,14 +116,10 @@ export const authService = {
    * Log out current session
    */
   async logout(): Promise<void> {
-    if (USE_MOCK_AUTH) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      return;
-    }
     try {
-      await request('/auth/logout', { method: 'POST' });
-    } catch {
-      // Ignore network errors on logout
+      await signOut(auth);
+    } catch (err) {
+      console.error('Firebase logout failed:', err);
     }
   },
 
@@ -168,13 +127,23 @@ export const authService = {
    * Check active session
    */
   async getSession(): Promise<UserProfile | null> {
-    if (USE_MOCK_AUTH) {
-      // Handled via AuthContext state / session store
-      return null;
-    }
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) return null;
+
     try {
-      const response = await request<{ user: UserProfile }>('/auth/me');
-      return response.user;
+      const userDocRef = doc(db, 'users', firebaseUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        return {
+          ...userData.profile,
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          lastLoginAt: new Date().toISOString()
+        };
+      }
+      return null;
     } catch {
       return null;
     }
