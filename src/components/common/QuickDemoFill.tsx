@@ -68,7 +68,7 @@ export const QuickDemoFill: React.FC<QuickDemoFillProps> = ({
           const isCurrentActive = acc.portal === activePortal;
           return (
             <button
-              key={acc.portal}
+              key={acc.identifier}
               type="button"
               onClick={() =>
                 onSelectAccount({

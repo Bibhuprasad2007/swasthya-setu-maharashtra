@@ -90,6 +90,13 @@ export interface TranslationDictionary {
   toggleSidebar: string;
   navigationMenu: string;
 
+  // Pharmacy Portal Sidebar
+  pharmacyNavDashboard: string;
+  pharmacyNavPrescriptions: string;
+  pharmacyNavInventory: string;
+  pharmacyNavReservations: string;
+  pharmacyNavHistory: string;
+
   // Doctor Portal Welcome Section
   greetingMorning: string;
   greetingAfternoon: string;

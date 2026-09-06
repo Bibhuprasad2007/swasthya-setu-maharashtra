@@ -84,6 +84,13 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     toggleSidebar: 'Toggle Menu',
     navigationMenu: 'Clinical Navigation',
 
+    // Pharmacy Portal Sidebar
+    pharmacyNavDashboard: 'Dashboard',
+    pharmacyNavPrescriptions: 'Prescriptions',
+    pharmacyNavInventory: 'Medicine Stock',
+    pharmacyNavReservations: 'Reservations',
+    pharmacyNavHistory: 'Dispensing History',
+
     // Doctor Portal Welcome Section
     greetingMorning: 'Good Morning',
     greetingAfternoon: 'Good Afternoon',
@@ -266,6 +273,13 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     toggleSidebar: 'मेनू बदला',
     navigationMenu: 'वैद्यकीय मेनू',
 
+    // Pharmacy Portal Sidebar
+    pharmacyNavDashboard: 'डॅशबोर्ड',
+    pharmacyNavPrescriptions: 'प्रिस्क्रिप्शन्स',
+    pharmacyNavInventory: 'औषध साठा (स्टॉक)',
+    pharmacyNavReservations: 'आरक्षणे (रिझर्व्हेशन्स)',
+    pharmacyNavHistory: 'वितरण इतिहास',
+
     // Doctor Portal Welcome Section
     greetingMorning: 'शुभ प्रभात',
     greetingAfternoon: 'शुभ दुपार',
@@ -447,6 +461,13 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     expandSidebar: 'साइडबार बड़ा करें',
     toggleSidebar: 'मेनू बदलें',
     navigationMenu: 'नैदानिक मेनू',
+
+    // Pharmacy Portal Sidebar
+    pharmacyNavDashboard: 'डैशबोर्ड',
+    pharmacyNavPrescriptions: 'प्रिस्क्रिप्शन',
+    pharmacyNavInventory: 'दवा स्टॉक',
+    pharmacyNavReservations: 'आरक्षण (रिजर्वेशन)',
+    pharmacyNavHistory: 'वितरण इतिहास',
 
     // Doctor Portal Welcome Section
     greetingMorning: 'सुप्रभात',

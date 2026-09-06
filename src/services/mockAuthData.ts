@@ -86,6 +86,31 @@ export const MOCK_ACCOUNTS: MockUserAccount[] = [
     }
   },
   {
+    identifier: 'PHA1002',
+    password: 'Demo@123',
+    facilityCode: 'MH-PHA-101',
+    portal: 'pharmacy',
+    profile: {
+      id: 'PHA1002',
+      name: 'Mahesh Jadhav (Registered Pharmacist)',
+      email: 'mahesh.jadhav@swasthyasetu.gov.in',
+      role: 'pharmacy',
+      roleTitle: 'Assistant Pharmacist & Inventory In-Charge',
+      facilityCode: 'MH-PHA-101',
+      facilityName: 'Government Jan Aushadhi & PHC Dispensary Nashik',
+      district: 'Nashik',
+      state: 'Maharashtra',
+      permissions: [
+        'prescription.dispense',
+        'stock.update',
+        'stock.indent',
+        'expiry.track',
+        'distribution.audit'
+      ],
+      lastLoginAt: new Date().toISOString()
+    }
+  },
+  {
     identifier: 'ADM1001',
     password: 'Demo@123',
     facilityCode: 'MH-ADMIN-01',
