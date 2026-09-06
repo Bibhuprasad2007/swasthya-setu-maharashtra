@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Calendar,
-  Clock,
   Users,
   Stethoscope,
   FileText,

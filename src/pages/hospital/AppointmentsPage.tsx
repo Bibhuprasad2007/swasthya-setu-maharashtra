@@ -525,6 +525,8 @@ export const AppointmentsPage: React.FC = () => {
             </div>
           )}
         </div>
+      </>
+      )}
       </div>
 
       {/* Book Appointment Modal */}
@@ -818,8 +820,7 @@ export const AppointmentsPage: React.FC = () => {
         }}
         onCancel={() => setIsCancelDialogOpen(false)}
       />
-          </>
-        )}
+
     </DoctorPortalLayout>
   );
 };
