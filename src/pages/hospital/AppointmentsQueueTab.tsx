@@ -11,13 +11,12 @@ import {
   UserX,
   Flame
 } from 'lucide-react';
-import { DoctorPortalLayout } from '../../components/layouts/DoctorPortalLayout';
 import { PatientActionModal } from '../../components/doctor/PatientActionModal';
 import { EmptyState } from '../../components/common/EmptyState';
 import { useDoctorPortal } from '../../context/DoctorPortalContext';
 import { QueuePatientItem, PriorityLevel, QueueStatus, PatientQueueItem } from '../../types/doctor';
 
-export const LiveQueuePage: React.FC = () => {
+export const AppointmentsQueueTab: React.FC = () => {
   const navigate = useNavigate();
   const {
     queue,
@@ -166,13 +165,10 @@ export const LiveQueuePage: React.FC = () => {
   };
 
   return (
-    <DoctorPortalLayout
-      pageTitle="Live OPD Patient Queue"
-      pageSubtitle="Real-time patient calling, triage priority assignment, and consultation entry"
-    >
+    <>
       <div className="space-y-6">
-        {/* Real-time Token Header Board */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Top Stats / Metrics Bar */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {/* Current Calling Token */}
           <div className="lg:col-span-2 p-5 rounded-2xl bg-gradient-to-br from-brand-navy-900 via-brand-navy-800 to-brand-blue-900 text-white shadow-xl border border-brand-navy-700/60 relative overflow-hidden flex flex-col justify-between">
             <div className="flex items-center justify-between gap-2 mb-2">
@@ -586,8 +582,9 @@ export const LiveQueuePage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onConfirmCall={(pt) => {
           callPatient(pt.id);
+          setIsModalOpen(false);
         }}
       />
-    </DoctorPortalLayout>
+    </>
   );
 };

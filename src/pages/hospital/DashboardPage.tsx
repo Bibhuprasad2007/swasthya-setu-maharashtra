@@ -203,7 +203,7 @@ export const DashboardPage: React.FC = () => {
         <section aria-label={t.welcomeBack || 'Doctor Welcome'}>
           <DoctorWelcomeCard
             onStartConsultation={() => navigate('/hospital/consultations')}
-            onViewQueue={() => navigate('/hospital/queue')}
+            onViewQueue={() => navigate('/hospital/appointments?tab=queue')}
           />
         </section>
 
@@ -215,9 +215,9 @@ export const DashboardPage: React.FC = () => {
                 key={stat.id}
                 stat={stat}
                 onClick={() => {
-                  if (stat.id === 'waiting_patients') navigate('/hospital/queue');
+                  if (stat.id === 'waiting_patients') navigate('/hospital/appointments?tab=queue');
                   else if (stat.id === 'today_appointments') navigate('/hospital/appointments');
-                  else if (stat.id === 'priority_cases') navigate('/hospital/queue');
+                  else if (stat.id === 'priority_cases') navigate('/hospital/appointments?tab=queue');
                   else if (stat.id === 'completed_consultations') navigate('/hospital/consultations');
                 }}
               />
@@ -252,8 +252,8 @@ export const DashboardPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => navigate('/hospital/queue')}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-brand-blue-600 dark:text-brand-blue-400 hover:text-brand-blue-700 hover:underline"
+                  onClick={() => navigate('/hospital/appointments?tab=queue')}
+                  className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-brand-blue-600 hover:text-brand-blue-700 dark:text-brand-blue-400 dark:hover:text-brand-blue-300"
                 >
                   <span>Full Queue</span>
                   <ArrowRight className="w-3.5 h-3.5" />

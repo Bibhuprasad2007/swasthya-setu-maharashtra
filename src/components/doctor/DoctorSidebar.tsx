@@ -56,14 +56,7 @@ export const DoctorSidebar: React.FC<DoctorSidebarProps> = ({
       path: '/hospital/appointments',
       labelKey: 'docNavAppointments',
       icon: Calendar,
-      getBadge: (s) => s.todayAppointmentsCount
-    },
-    {
-      id: 'queue',
-      path: '/hospital/queue',
-      labelKey: 'docNavLiveQueue',
-      icon: Clock,
-      getBadge: (s) => (s.waitingPatientsCount > 0 ? s.waitingPatientsCount : undefined)
+      getBadge: (s) => (s.todayAppointmentsCount || 0) + (s.waitingPatientsCount || 0) > 0 ? (s.todayAppointmentsCount || 0) + (s.waitingPatientsCount || 0) : undefined
     },
     {
       id: 'patients',

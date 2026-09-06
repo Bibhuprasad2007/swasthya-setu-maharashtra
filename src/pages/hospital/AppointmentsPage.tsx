@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Calendar,
   Plus,
@@ -11,9 +11,11 @@ import {
   Stethoscope,
   Video,
   RefreshCcw,
-  Ban
+  Ban,
+  Clock
 } from 'lucide-react';
 import { DoctorPortalLayout } from '../../components/layouts/DoctorPortalLayout';
+import { AppointmentsQueueTab } from './AppointmentsQueueTab';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { EmptyState } from '../../components/common/EmptyState';
 import { useDoctorPortal } from '../../context/DoctorPortalContext';
@@ -21,6 +23,9 @@ import { AppointmentItem, AppointmentStatus, AppointmentType } from '../../types
 
 export const AppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'scheduled';
+
   const {
     appointments,
     patients,
@@ -238,16 +243,46 @@ export const AppointmentsPage: React.FC = () => {
       }
     >
       <div className="space-y-6">
-        {/* Filters & Tabs Bar */}
-        <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200/80 dark:border-brand-dark-border p-4 sm:p-5 shadow-xs space-y-4">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Quick Date Tabs */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-brand-dark-elevated p-1 rounded-xl border border-slate-200/80 dark:border-brand-dark-border overflow-x-auto">
-              {(['today', 'tomorrow', 'week', 'all'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setDateFilter(tab)}
+        {/* Main Tabs Navigation */}
+        <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200/80 dark:border-brand-dark-border p-2 shadow-xs">
+          <div className="flex overflow-x-auto gap-2">
+            {[
+              { id: 'scheduled', label: 'Scheduled Appointments', icon: Calendar },
+              { id: 'queue', label: 'Checked-in / Live Queue', icon: Clock },
+              { id: 'completed', label: 'Completed', icon: CheckCircle2 },
+              { id: 'cancelled', label: 'Cancelled / No-show', icon: Ban }
+            ].map((tabItem) => (
+              <button
+                key={tabItem.id}
+                type="button"
+                onClick={() => setSearchParams({ tab: tabItem.id })}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
+                  activeTab === tabItem.id
+                    ? 'bg-brand-blue-50 dark:bg-brand-blue-900/40 text-brand-blue-700 dark:text-brand-blue-300 shadow-inner'
+                    : 'text-slate-600 dark:text-brand-dark-muted hover:bg-slate-50 dark:hover:bg-brand-dark-elevated hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <tabItem.icon className="w-4 h-4" />
+                <span>{tabItem.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {activeTab === 'queue' ? (
+          <AppointmentsQueueTab />
+        ) : (
+          <>
+            {/* Filters & Tabs Bar */}
+            <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200/80 dark:border-brand-dark-border p-4 sm:p-5 shadow-xs space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                {/* Quick Date Tabs */}
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-brand-dark-elevated p-1 rounded-xl border border-slate-200/80 dark:border-brand-dark-border overflow-x-auto">
+                  {(['today', 'tomorrow', 'week', 'all'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setDateFilter(tab)}
                   className={`px-3 py-1.5 text-xs font-semibold rounded-lg capitalize whitespace-nowrap transition-all ${
                     dateFilter === tab
                       ? 'bg-white dark:bg-brand-dark-surface text-brand-blue-700 dark:text-brand-blue-400 shadow-xs'
@@ -783,6 +818,8 @@ export const AppointmentsPage: React.FC = () => {
         }}
         onCancel={() => setIsCancelDialogOpen(false)}
       />
+          </>
+        )}
     </DoctorPortalLayout>
   );
 };

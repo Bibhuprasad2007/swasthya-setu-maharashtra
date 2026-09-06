@@ -56,8 +56,6 @@ export const DoctorPortalLayout: React.FC<DoctorPortalLayoutProps> = ({
       items.push({ label: t.docNavDashboard || 'Dashboard' });
     } else if (path.includes('/hospital/appointments')) {
       items.push({ label: t.docNavAppointments || 'Appointments' });
-    } else if (path.includes('/hospital/queue')) {
-      items.push({ label: t.docNavLiveQueue || 'Live Queue' });
     } else if (path.includes('/hospital/patients')) {
       items.push({ label: t.docNavPatients || 'Patients' });
     } else if (path.includes('/hospital/consultations')) {
