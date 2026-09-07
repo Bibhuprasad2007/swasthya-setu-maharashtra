@@ -54,13 +54,24 @@ export const authService = {
 
       const userData = userDocSnap.data();
 
+      // Verify active status
+      if (userData.active === false || userData.isActive === false) {
+        await signOut(auth);
+        recordAuditLog({ portal, identifier, facilityCode, status: 'FAILED' });
+        throw new ApiError('Account is deactivated. Please contact administration.', 403);
+      }
+
       const normalizePortal = (p: string = '') => {
-        const cleaned = p.trim().toLowerCase();
-        if (cleaned === 'lab') return 'laboratory';
-        return cleaned;
+        const cleaned = p.trim().toUpperCase();
+        if (cleaned === 'DOCTOR' || cleaned === 'HOSPITAL') return 'hospital';
+        if (cleaned === 'LAB_TECH' || cleaned === 'LAB' || cleaned === 'LABORATORY') return 'laboratory';
+        if (cleaned === 'PHARMACIST' || cleaned === 'PHARMACY') return 'pharmacy';
+        if (cleaned === 'STATE_ADMIN' || cleaned === 'ADMIN') return 'admin';
+        return cleaned.toLowerCase();
       };
 
-      const userPortalNorm = normalizePortal(userData.portal);
+      const userRoleRaw = userData.role || userData.portal || '';
+      const userPortalNorm = normalizePortal(userRoleRaw);
       const reqPortalNorm = normalizePortal(portal);
 
       // Verify portal authorization
@@ -68,7 +79,7 @@ export const authService = {
         await signOut(auth);
         recordAuditLog({ portal, identifier, facilityCode, status: 'FAILED' });
         throw new ApiError(
-          `Access Denied: Account is authorized for ${(userData.portal || '').trim().toUpperCase()} portal, not ${portal.toUpperCase()}.`,
+          `Access Denied: Account is authorized for ${userRoleRaw.toUpperCase()} portal, not ${portal.toUpperCase()}.`,
           403,
           'ROLE_MISMATCH'
         );
@@ -77,8 +88,8 @@ export const authService = {
       // Verify facility code
       const rawUserFacility = 
         userData.facilityCode || 
+        userData.facilityId ||
         userData.code || 
-        userData.facilityId || 
         userData.storeCode || 
         userData.deptCode || 
         '';
@@ -103,11 +114,23 @@ export const authService = {
 
       const token = await firebaseUser.getIdToken();
 
+      const resolvedFacility = rawUserFacility || facilityCode.trim().toUpperCase();
+
       const userProfile: UserProfile = {
-        role: reqPortalNorm as any,
-        ...userData.profile,
+        id: firebaseUser.uid,
         uid: firebaseUser.uid,
-        email: firebaseUser.email || '',
+        name: userData.displayName || userData.name || firebaseUser.email?.split('@')[0] || 'User',
+        displayName: userData.displayName || userData.name,
+        email: firebaseUser.email || userData.email || '',
+        role: reqPortalNorm as any,
+        systemRole: (userRoleRaw.toUpperCase() as any),
+        roleTitle: userData.roleTitle || userData.displayName || 'Authorized Officer',
+        facilityId: resolvedFacility,
+        facilityCode: resolvedFacility,
+        facilityName: userData.facilityName || `${resolvedFacility} Facility`,
+        district: userData.district || 'Maharashtra',
+        state: userData.state || 'Maharashtra',
+        permissions: userData.permissions || ['READ', 'WRITE'],
         lastLoginAt: new Date().toISOString()
       };
 
@@ -115,7 +138,7 @@ export const authService = {
         success: true,
         user: userProfile,
         token,
-        expiresIn: 3600, // Firebase tokens typically last 1 hour
+        expiresIn: 3600,
         message: 'Authentication successful'
       };
     } catch (err: any) {
@@ -158,14 +181,29 @@ export const authService = {
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
-        const cleanedPortal = (userData.portal || '').trim().toLowerCase();
-        const role = cleanedPortal === 'lab' ? 'laboratory' : cleanedPortal;
+        const userRoleRaw = userData.role || userData.portal || '';
+        const cleaned = userRoleRaw.trim().toUpperCase();
+        let role = 'hospital';
+        if (cleaned === 'DOCTOR' || cleaned === 'HOSPITAL') role = 'hospital';
+        else if (cleaned === 'LAB_TECH' || cleaned === 'LAB' || cleaned === 'LABORATORY') role = 'laboratory';
+        else if (cleaned === 'PHARMACIST' || cleaned === 'PHARMACY') role = 'pharmacy';
+        else if (cleaned === 'STATE_ADMIN' || cleaned === 'ADMIN') role = 'admin';
+
+        const rawUserFacility = userData.facilityCode || userData.facilityId || '';
 
         return {
-          role: role as any,
-          ...userData.profile,
+          id: firebaseUser.uid,
           uid: firebaseUser.uid,
+          name: userData.displayName || userData.name || firebaseUser.email?.split('@')[0] || 'User',
+          displayName: userData.displayName || userData.name,
           email: firebaseUser.email || '',
+          role: role as any,
+          facilityId: rawUserFacility,
+          facilityCode: rawUserFacility,
+          facilityName: userData.facilityName || 'Facility',
+          district: userData.district || 'Maharashtra',
+          state: userData.state || 'Maharashtra',
+          permissions: userData.permissions || ['READ', 'WRITE'],
           lastLoginAt: new Date().toISOString()
         };
       }

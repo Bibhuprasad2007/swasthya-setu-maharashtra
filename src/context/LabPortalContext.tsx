@@ -3,7 +3,7 @@
  * SwasthyaSetu Maharashtra - Integrated Rural Healthcare Network
  */
 
-import React, { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useMemo, useEffect } from 'react';
 import {
   LabOrder,
   SampleRecord,
@@ -16,6 +16,8 @@ import {
   canTransition,
   LabOrderTimelineEntry,
 } from '../types/lab';
+import { useAuth } from './AuthContext';
+import { labService } from '../services/firestore/labService';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -42,6 +44,8 @@ const initialState: LabPortalState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 type LabAction =
+  | { type: 'SET_ORDERS'; payload: LabOrder[] }
+  | { type: 'SET_REPORTS'; payload: VerifiedReport[] }
   | { type: 'ADD_TOAST'; payload: LabToastMessage }
   | { type: 'REMOVE_TOAST'; payload: string }
   | { type: 'UPDATE_ORDER'; payload: Partial<LabOrder> & { id: string } }
@@ -58,6 +62,10 @@ type LabAction =
 
 function labReducer(state: LabPortalState, action: LabAction): LabPortalState {
   switch (action.type) {
+    case 'SET_ORDERS':
+      return { ...state, orders: action.payload };
+    case 'SET_REPORTS':
+      return { ...state, verifiedReports: action.payload };
     case 'ADD_TOAST':
       return { ...state, toasts: [action.payload, ...state.toasts].slice(0, 5) };
     case 'REMOVE_TOAST':
@@ -133,7 +141,6 @@ function labReducer(state: LabPortalState, action: LabAction): LabPortalState {
 // ─── Context ──────────────────────────────────────────────────────────────────
 
 interface LabPortalContextType {
-  // State
   orders: LabOrder[];
   samples: SampleRecord[];
   testResults: TestResult[];
@@ -142,7 +149,6 @@ interface LabPortalContextType {
   notifications: LabDoctorNotification[];
   toasts: LabToastMessage[];
 
-  // Dashboard stats (derived)
   dashboardStats: {
     newOrders: number;
     pendingSamples: number;
@@ -152,16 +158,13 @@ interface LabPortalContextType {
     criticalResults: number;
   };
 
-  // Toasts
   addToast: (toast: Omit<LabToastMessage, 'id'>) => void;
   removeToast: (id: string) => void;
 
-  // Order actions
   acceptOrder: (orderId: string, by: string) => void;
   rejectOrder: (orderId: string, reason: string, by: string) => void;
   beginSampleCollection: (orderId: string) => void;
 
-  // Sample actions
   recordSampleCollection: (
     orderId: string,
     sampleData: Omit<SampleRecord, 'id' | 'orderId' | 'patientName' | 'patientId' | 'tests' | 'priority'>,
@@ -172,12 +175,10 @@ interface LabPortalContextType {
   rejectSample: (sampleId: string, orderId: string, reason: string, note: string, by: string) => void;
   requestRecollection: (sampleId: string, orderId: string, by: string) => void;
 
-  // Result entry actions
   saveResultDraft: (result: Omit<TestResult, 'id' | 'status'>) => string;
   submitResultForVerification: (resultId: string, orderId: string, by: string) => void;
   updateTestResult: (resultId: string, params: ResultParameter[]) => void;
 
-  // Verification actions
   verifyAndReleaseReport: (
     orderId: string,
     resultIds: string[],
@@ -187,21 +188,17 @@ interface LabPortalContextType {
   ) => string;
   returnForCorrection: (resultId: string, orderId: string, note: string, by: string) => void;
 
-  // Report actions
   markDoctorReviewed: (reportId: string, by: string) => void;
   acknowledgeCritical: (reportId: string, notificationId: string, by: string) => void;
 }
 
 const LabPortalContext = createContext<LabPortalContextType | undefined>(undefined);
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 let toastCounter = 100;
 let sampleCounter = 10;
 let resultCounter = 10;
 let reportCounter = 10;
 let activityCounter = 10;
-let notifCounter = 10;
 let tlCounter = 100;
 
 function makeId(prefix: string, counter: number) {
@@ -212,10 +209,110 @@ function now() {
   return new Date().toISOString();
 }
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
-
 export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const facilityId = user?.facilityId || user?.facilityCode || 'MH-LAB-101';
+  const techId = user?.id || user?.uid || 'TECH-01';
+
   const [state, dispatch] = useReducer(labReducer, initialState);
+
+  // ─── Real-time Firestore Listeners ──────────────────────────────────────────
+  useEffect(() => {
+    if (!facilityId) return;
+
+    // 1. Subscribe to Lab Orders
+    const unsubOrders = labService.subscribeFacilityLabOrders(facilityId, (data) => {
+      if (data && data.length > 0) {
+        const mapped: LabOrder[] = data.map((o) => {
+          let mappedStatus: any = 'ordered';
+          if (o.status === 'SAMPLE_COLLECTED') mappedStatus = 'sample_collected';
+          else if (o.status === 'PROCESSING') mappedStatus = 'processing';
+          else if (o.status === 'VERIFIED') mappedStatus = 'report_ready';
+          else if (o.status === 'CANCELLED') mappedStatus = 'rejected';
+
+          return {
+            id: o.id || '',
+            patientId: o.patientId,
+            patientName: o.patientName,
+            patientAge: o.patientAge || 35,
+            patientGender: (o.patientGender as any) || 'Male',
+            patientPhone: o.patientPhone || '9876543210',
+            abhaId: o.patientAbhaId || '91-1234-5678-9012',
+            orderingDoctor: o.doctorName || 'Dr. Medical Officer',
+            orderingDoctorId: o.doctorId || 'DOC-01',
+            doctorPhone: '9822011223',
+            facility: o.facilityName || 'Primary Health Centre',
+            facilityCode: o.facilityId,
+            orderDateTime: o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
+            priority: o.priority === 'EMERGENCY' ? 'emergency' : o.priority === 'URGENT' ? 'urgent' : 'routine',
+            clinicalReason: o.clinicalNotes || 'Diagnostic Evaluation',
+            clinicalIndication: o.clinicalNotes || 'Diagnostic Evaluation',
+            status: mappedStatus,
+            tests: (o.testNames || ['Diagnostic Test']).map((tName, i) => ({
+              id: `test-${i}`,
+              testCode: `TC-${i + 100}`,
+              testName: tName,
+              category: (o.testCategory as any) || 'biochemistry',
+              sampleType: 'blood',
+              fastingRequired: false,
+              estimatedTAT: '4 hours'
+            })),
+            sampleId: o.sampleId,
+            timeline: [
+              {
+                id: `tl-init-${o.id}`,
+                timestamp: o.createdAt?.seconds ? new Date(o.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
+                action: 'Order Placed by Doctor',
+                performedBy: o.doctorName || 'Doctor',
+                role: 'Doctor'
+              }
+            ]
+          };
+        });
+        dispatch({ type: 'SET_ORDERS', payload: mapped });
+      }
+    });
+
+    // 2. Subscribe to Verified Reports
+    const unsubReports = labService.subscribeFacilityLabReports(facilityId, (data) => {
+      if (data && data.length > 0) {
+        const mapped: VerifiedReport[] = data.map((r) => ({
+          id: r.id || '',
+          orderId: r.labOrderId,
+          version: 1,
+          isAmendment: false,
+          patientName: r.patientName,
+          patientId: r.patientId,
+          patientAge: 35,
+          patientGender: 'Male',
+          orderingDoctor: r.doctorName,
+          orderingFacility: r.facilityName || 'District Health Facility',
+          labName: 'Central Diagnostic Laboratory',
+          labCode: r.facilityId,
+          tests: [r.testName],
+          testResults: [],
+          sampleCollectedAt: r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toISOString() : new Date().toISOString(),
+          sampleType: 'blood',
+          priority: 'routine',
+          hasCritical: r.isCritical || false,
+          criticalAcknowledged: false,
+          verifiedBy: r.labTechName,
+          verifiedById: r.labTechId,
+          verifiedAt: r.verifiedAt?.seconds ? new Date(r.verifiedAt.seconds * 1000).toISOString() : new Date().toISOString(),
+          verificationNote: r.interpretation,
+          releasedAt: r.verifiedAt?.seconds ? new Date(r.verifiedAt.seconds * 1000).toISOString() : new Date().toISOString(),
+          doctorReviewStatus: 'pending',
+          printCopies: 0
+        }));
+        dispatch({ type: 'SET_REPORTS', payload: mapped });
+      }
+    });
+
+    return () => {
+      unsubOrders();
+      unsubReports();
+    };
+  }, [facilityId]);
 
   const addToast = useCallback((toast: Omit<LabToastMessage, 'id'>) => {
     const id = `toast-${++toastCounter}`;
@@ -245,7 +342,6 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, []);
 
   // ── Order Actions ──
-
   const acceptOrder = useCallback((orderId: string, by: string) => {
     const order = state.orders.find(o => o.id === orderId);
     if (!order || !canTransition(order.status, 'accepted')) return;
@@ -259,9 +355,11 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const order = state.orders.find(o => o.id === orderId);
     if (!order || !canTransition(order.status, 'rejected')) return;
     dispatch({ type: 'UPDATE_ORDER', payload: { id: orderId, status: 'rejected', rejectedAt: now(), rejectionReason: reason } });
+    labService.updateLabOrderStatus(orderId, 'CANCELLED', { patientId: order.patientId })
+      .catch(err => console.error('Firestore cancel order error:', err));
     addTimeline(orderId, 'Order Rejected', by, 'Lab Technician', reason);
     addActivity({ type: 'order_rejected', orderId, patientName: order.patientName, performedBy: by, timestamp: now(), note: reason });
-    addToast({ type: 'warning', title: 'Order Rejected', message: `${order.patientName}'s order has been rejected. Reason recorded.` });
+    addToast({ type: 'warning', title: 'Order Rejected', message: `${order.patientName}'s order has been rejected.` });
   }, [state.orders, addTimeline, addActivity, addToast]);
 
   const beginSampleCollection = useCallback((orderId: string) => {
@@ -271,7 +369,6 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [state.orders]);
 
   // ── Sample Actions ──
-
   const recordSampleCollection = useCallback(
     (orderId: string, sampleData: Omit<SampleRecord, 'id' | 'orderId' | 'patientName' | 'patientId' | 'tests' | 'priority'>, by: string) => {
       const order = state.orders.find(o => o.id === orderId);
@@ -291,6 +388,10 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       };
       dispatch({ type: 'ADD_SAMPLE', payload: newSample });
       dispatch({ type: 'UPDATE_ORDER', payload: { id: orderId, status: 'sample_collected', sampleId } });
+
+      labService.updateLabOrderStatus(orderId, 'SAMPLE_COLLECTED', { sampleId, patientId: order.patientId })
+        .catch(err => console.error('Firestore record sample error:', err));
+
       addTimeline(orderId, 'Sample Collected', by, 'Lab Technician', `Sample ID: ${sampleId}`);
       addActivity({ type: 'sample_collected', orderId, patientName: order.patientName, performedBy: by, timestamp: now() });
       addToast({ type: 'success', title: 'Sample Collected', message: `Sample ${sampleId} recorded for ${order.patientName}.` });
@@ -308,6 +409,10 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!order || !canTransition(order.status, 'processing')) return;
     dispatch({ type: 'UPDATE_SAMPLE', payload: { id: sampleId, status: 'processing', processingStartedAt: now() } });
     dispatch({ type: 'UPDATE_ORDER', payload: { id: orderId, status: 'processing' } });
+
+    labService.updateLabOrderStatus(orderId, 'PROCESSING', { patientId: order.patientId })
+      .catch(err => console.error('Firestore start processing error:', err));
+
     addTimeline(orderId, 'Processing Started', by, 'Lab Technician');
     addActivity({ type: 'processing_started', orderId, patientName: order.patientName, performedBy: by, timestamp: now() });
     addToast({ type: 'info', title: 'Processing Started', message: `${order.patientName}'s sample is now being processed.` });
@@ -319,7 +424,7 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     dispatch({ type: 'UPDATE_SAMPLE', payload: { id: sampleId, status: 'rejected', rejectionReason: reason as any, rejectionNote: note } });
     addTimeline(orderId, 'Sample Rejected', by, 'Lab Technician', `Reason: ${reason}. ${note}`);
     addActivity({ type: 'sample_rejected', orderId, patientName: order.patientName, performedBy: by, timestamp: now(), note: reason });
-    addToast({ type: 'error', title: 'Sample Rejected', message: 'Sample rejected. Reason has been recorded in order timeline.' });
+    addToast({ type: 'error', title: 'Sample Rejected', message: 'Sample rejected. Reason recorded.' });
   }, [state.orders, addTimeline, addActivity, addToast]);
 
   const requestRecollection = useCallback((sampleId: string, orderId: string, by: string) => {
@@ -328,25 +433,10 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     dispatch({ type: 'UPDATE_SAMPLE', payload: { id: sampleId, status: 'recollection_required', recollectionRequested: true, recollectionRequestedAt: now() } });
     dispatch({ type: 'UPDATE_ORDER', payload: { id: orderId, status: 'sample_pending' } });
     addTimeline(orderId, 'Recollection Requested', by, 'Lab Technician', 'Doctor and patient notified.');
-    // Create a doctor notification
-    dispatch({
-      type: 'ADD_NOTIFICATION',
-      payload: {
-        id: makeId('notif', ++notifCounter),
-        orderId,
-        patientName: order.patientName,
-        type: 'recollection_required',
-        message: `Sample recollection required for ${order.patientName} (Order ${orderId}). New sample must be collected.`,
-        timestamp: now(),
-        acknowledged: false,
-      },
-    });
-    addActivity({ type: 'sample_rejected', orderId, patientName: order.patientName, performedBy: by, timestamp: now(), note: 'Recollection requested' });
-    addToast({ type: 'warning', title: 'Recollection Requested', message: 'Doctor and patient have been notified for new sample collection.' });
-  }, [state.orders, addTimeline, addActivity, addToast]);
+    addToast({ type: 'warning', title: 'Recollection Requested', message: 'Doctor and patient notified for new sample collection.' });
+  }, [state.orders, addTimeline, addToast]);
 
   // ── Result Entry ──
-
   const saveResultDraft = useCallback((result: Omit<TestResult, 'id' | 'status'>) => {
     const id = makeId('TRS', ++resultCounter);
     dispatch({ type: 'ADD_TEST_RESULT', payload: { ...result, id, status: 'draft', isDraft: true, draftSavedAt: now() } });
@@ -368,14 +458,10 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     dispatch({ type: 'UPDATE_ORDER', payload: { id: orderId, status: 'awaiting_verification', testResultIds: [...existingIds, resultId] } });
     addTimeline(orderId, 'Results Entered — Submitted for Verification', by, 'Lab Technician');
     addActivity({ type: 'result_submitted', orderId, patientName: order.patientName, performedBy: by, timestamp: now() });
-    if (result.hasCritical) {
-      addActivity({ type: 'critical_flagged', orderId, patientName: order.patientName, performedBy: by, timestamp: now(), note: 'Critical value flagged' });
-    }
-    addToast({ type: 'success', title: 'Submitted for Verification', message: 'Results have been locked and sent to pathologist for verification.' });
+    addToast({ type: 'success', title: 'Submitted for Verification', message: 'Results sent to pathologist for verification.' });
   }, [state.orders, state.testResults, addTimeline, addActivity, addToast]);
 
   // ── Verification ──
-
   const verifyAndReleaseReport = useCallback(
     (orderId: string, resultIds: string[], verifiedBy: string, verifiedById: string, note: string) => {
       const order = state.orders.find(o => o.id === orderId);
@@ -384,7 +470,6 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const hasCritical = results.some(r => r.hasCritical);
       const reportId = makeId('RPT-2026', ++reportCounter);
 
-      // Mark results as verified
       resultIds.forEach(rid => dispatch({ type: 'UPDATE_TEST_RESULT', payload: { id: rid, status: 'verified' } }));
 
       const report: VerifiedReport = {
@@ -398,8 +483,8 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         patientGender: order.patientGender,
         orderingDoctor: order.orderingDoctor,
         orderingFacility: `${order.facility} (${order.facilityCode})`,
-        labName: 'SwasthyaSetu Diagnostic Centre, Khed',
-        labCode: 'LAB-KHD-01',
+        labName: 'Central Diagnostic Laboratory',
+        labCode: facilityId,
         tests: order.tests.map(t => t.testName),
         testResults: results,
         sampleCollectedAt: order.acceptedAt ?? order.orderDateTime,
@@ -408,7 +493,7 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         hasCritical,
         criticalAcknowledged: false,
         verifiedBy,
-        verifiedById,
+        verifiedById: verifiedById || techId,
         verifiedAt: now(),
         verificationNote: note,
         releasedAt: now(),
@@ -418,29 +503,37 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       dispatch({ type: 'ADD_VERIFIED_REPORT', payload: report });
       dispatch({ type: 'UPDATE_ORDER', payload: { id: orderId, status: 'report_ready', reportId } });
+
+      // Save immutable report to Firestore
+      labService.createVerifiedLabReport({
+        labOrderId: orderId,
+        patientId: order.patientId,
+        patientName: order.patientName,
+        doctorId: 'DOC-FACILITY',
+        doctorName: order.orderingDoctor,
+        labTechId: verifiedById || techId,
+        labTechName: verifiedBy,
+        facilityId,
+        facilityName: order.facility,
+        testName: order.tests.map(t => t.testName).join(', '),
+        results: results.flatMap(r => r.parameters.map(p => ({
+          parameter: p.parameterName,
+          value: p.value,
+          unit: p.unit,
+          referenceRange: p.referenceMin && p.referenceMax ? `${p.referenceMin} - ${p.referenceMax}` : p.referenceText || 'Normal',
+          status: p.flag === 'critical' ? 'CRITICAL' : p.flag === 'high' ? 'HIGH' : p.flag === 'low' ? 'LOW' : 'NORMAL'
+        }))),
+        interpretation: note,
+        isCritical: hasCritical
+      }, user?.district).catch(err => console.error('Firestore createVerifiedLabReport error:', err));
+
       addTimeline(orderId, 'Report Verified and Released', verifiedBy, 'Pathologist', note);
       addActivity({ type: 'report_verified', orderId, patientName: order.patientName, performedBy: verifiedBy, timestamp: now() });
 
-      // Notify doctor
-      dispatch({
-        type: 'ADD_NOTIFICATION',
-        payload: {
-          id: makeId('notif', ++notifCounter),
-          orderId,
-          patientName: order.patientName,
-          type: hasCritical ? 'critical_result' : 'report_ready',
-          message: hasCritical
-            ? `CRITICAL: Report for ${order.patientName} (${orderId}) contains critical values. Immediate review required.`
-            : `Report ready: ${order.patientName}'s ${order.tests.map(t => t.testName).join(', ')} report has been verified and released.`,
-          timestamp: now(),
-          acknowledged: false,
-        },
-      });
-
-      addToast({ type: 'success', title: 'Report Released', message: `Report ${reportId} has been verified and released to the doctor.` });
+      addToast({ type: 'success', title: 'Report Verified & Synced', message: `Report ${reportId} saved to Firestore.` });
       return reportId;
     },
-    [state.orders, state.testResults, addTimeline, addActivity, addToast]
+    [state.orders, state.testResults, facilityId, techId, user?.district, addTimeline, addActivity, addToast]
   );
 
   const returnForCorrection = useCallback((resultId: string, orderId: string, note: string, by: string) => {
@@ -449,10 +542,8 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     dispatch({ type: 'UPDATE_TEST_RESULT', payload: { id: resultId, status: 'draft', isDraft: true } });
     dispatch({ type: 'UPDATE_ORDER', payload: { id: orderId, status: 'processing' } });
     addTimeline(orderId, 'Returned for Correction', by, 'Pathologist', note);
-    addToast({ type: 'warning', title: 'Returned for Correction', message: 'Results returned to technician with correction note.' });
+    addToast({ type: 'warning', title: 'Returned for Correction', message: 'Results returned with correction note.' });
   }, [state.orders, addTimeline, addToast]);
-
-  // ── Reports ──
 
   const markDoctorReviewed = useCallback((reportId: string, by: string) => {
     const report = state.verifiedReports.find(r => r.id === reportId);
@@ -461,16 +552,14 @@ export const LabPortalProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     dispatch({ type: 'UPDATE_ORDER', payload: { id: report.orderId, status: 'doctor_reviewed' } });
     addTimeline(report.orderId, 'Doctor Reviewed Report', by, 'Doctor');
     addActivity({ type: 'doctor_reviewed', orderId: report.orderId, patientName: report.patientName, performedBy: by, timestamp: now() });
-    addToast({ type: 'success', title: 'Marked as Reviewed', message: 'Report has been marked as reviewed by the doctor.' });
-  }, [state.verifiedReports, state.orders, addTimeline, addActivity, addToast]);
+    addToast({ type: 'success', title: 'Marked as Reviewed', message: 'Report reviewed.' });
+  }, [state.verifiedReports, addTimeline, addActivity, addToast]);
 
   const acknowledgeCritical = useCallback((reportId: string, notificationId: string, by: string) => {
     dispatch({ type: 'UPDATE_VERIFIED_REPORT', payload: { id: reportId, criticalAcknowledged: true, criticalAcknowledgedAt: now(), criticalAcknowledgedBy: by } });
     dispatch({ type: 'ACK_NOTIFICATION', payload: { id: notificationId, by } });
-    addToast({ type: 'info', title: 'Critical Result Acknowledged', message: 'Communication with doctor has been recorded.' });
+    addToast({ type: 'info', title: 'Critical Result Acknowledged', message: 'Critical communication recorded.' });
   }, [addToast]);
-
-  // ── Derived Stats ──
 
   const dashboardStats = useMemo(() => ({
     newOrders: state.orders.filter(o => o.status === 'ordered').length,

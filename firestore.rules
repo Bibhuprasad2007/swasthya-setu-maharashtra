@@ -1,0 +1,227 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isUserActive() {
+      return isAuthenticated() && getUserData().active == true;
+    }
+
+    function getUserRole() {
+      return getUserData().role;
+    }
+
+    function getUserFacility() {
+      return getUserData().facilityId;
+    }
+
+    function isDoctor() {
+      return isUserActive() && getUserRole() == 'DOCTOR';
+    }
+
+    function isLabTech() {
+      return isUserActive() && getUserRole() == 'LAB_TECH';
+    }
+
+    function isPharmacist() {
+      return isUserActive() && getUserRole() == 'PHARMACIST';
+    }
+
+    function isStateAdmin() {
+      return isUserActive() && getUserRole() == 'STATE_ADMIN';
+    }
+
+    function isPatient() {
+      return isUserActive() && getUserRole() == 'PATIENT';
+    }
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 0. Patients Collection
+    match /patients/{patientDocId} {
+      allow read: if isAuthenticated() && (
+        (isDoctor() && resource.data.facilityId == getUserFacility()) ||
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        isStateAdmin()
+      );
+      allow create: if isDoctor() && request.resource.data.facilityId == getUserFacility();
+      allow update: if isDoctor() && resource.data.facilityId == getUserFacility();
+      allow delete: if false;
+    }
+
+    // 1. Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isStateAdmin() || isDoctor());
+      // Users can only update their own non-critical profile fields, never role or active status
+      allow update: if isAuthenticated() && request.auth.uid == userId
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'active', 'facilityId', 'district']);
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 2. Facilities
+    match /facilities/{facilityId} {
+      allow read: if isAuthenticated();
+      allow write: if isStateAdmin();
+    }
+
+    // 3. Appointments
+    match /appointments/{appointmentId} {
+      allow read: if isAuthenticated() && (
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        (isDoctor() && resource.data.facilityId == getUserFacility()) ||
+        isStateAdmin()
+      );
+      allow create: if isPatient() || isDoctor();
+      allow update: if (isDoctor() && resource.data.facilityId == getUserFacility()) ||
+                       (isPatient() && resource.data.patientId == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // 4. Consultations (Private clinical notes: NO ADMIN ACCESS)
+    match /consultations/{consultationId} {
+      allow read: if isAuthenticated() && (
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        (isDoctor() && resource.data.facilityId == getUserFacility())
+      );
+      allow create, update: if isDoctor() && request.resource.data.facilityId == getUserFacility();
+      allow delete: if false;
+    }
+
+    // 5. Lab Orders
+    match /labOrders/{labOrderId} {
+      allow read: if isAuthenticated() && (
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        (isDoctor() && resource.data.facilityId == getUserFacility()) ||
+        (isLabTech() && resource.data.facilityId == getUserFacility())
+      );
+      allow create: if isDoctor();
+      allow update: if (isDoctor() || isLabTech()) && resource.data.facilityId == getUserFacility();
+      allow delete: if false;
+    }
+
+    // 6. Lab Reports (IMMUTABLE once verified)
+    match /labReports/{labReportId} {
+      allow read: if isAuthenticated() && (
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        (isDoctor() && resource.data.facilityId == getUserFacility()) ||
+        (isLabTech() && resource.data.facilityId == getUserFacility())
+      );
+      // Can only create if lab technician
+      allow create: if isLabTech() && request.resource.data.facilityId == getUserFacility();
+      // Immutable once created / verified
+      allow update, delete: if false;
+    }
+
+    // 7. Prescriptions (Pharmacy cannot alter dosage or notes)
+    match /prescriptions/{prescriptionId} {
+      allow read: if isAuthenticated() && (
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        (isDoctor() && resource.data.facilityId == getUserFacility()) ||
+        (isPharmacist() && resource.data.facilityId == getUserFacility())
+      );
+      allow create: if isDoctor();
+      allow update: if isPharmacist() && resource.data.facilityId == getUserFacility()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // 8. Medicine Inventory
+    match /medicineInventory/{inventoryId} {
+      allow read: if isPharmacist() || isDoctor() || isStateAdmin();
+      allow create, update: if isPharmacist() && request.resource.data.facilityId == getUserFacility();
+      allow delete: if false;
+    }
+
+    // 9. Medicine Reservations
+    match /medicineReservations/{reservationId} {
+      allow read: if isAuthenticated() && (
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        (isPharmacist() && resource.data.facilityId == getUserFacility())
+      );
+      allow create: if isPatient() || isPharmacist();
+      allow update: if (isPharmacist() && resource.data.facilityId == getUserFacility()) ||
+                       (isPatient() && resource.data.patientId == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // 10. Dispensings (IMMUTABLE)
+    match /dispensings/{dispensingId} {
+      allow read: if isAuthenticated() && (
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        (isPharmacist() && resource.data.facilityId == getUserFacility())
+      );
+      allow create: if isPharmacist() && request.resource.data.facilityId == getUserFacility();
+      allow update, delete: if false; // strictly immutable
+    }
+
+    // 11. Referrals
+    match /referrals/{referralId} {
+      allow read: if isAuthenticated() && (
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        (isDoctor() && (resource.data.fromFacilityId == getUserFacility() || resource.data.toFacilityId == getUserFacility())) ||
+        isStateAdmin()
+      );
+      allow create, update: if isDoctor();
+      allow delete: if false;
+    }
+
+    // 12. Follow-Ups
+    match /followUps/{followUpId} {
+      allow read: if isAuthenticated() && (
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        (isDoctor() && resource.data.facilityId == getUserFacility())
+      );
+      allow create, update: if isDoctor() || (isPatient() && resource.data.patientId == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // 13. Teleconsultations
+    match /teleconsultations/{teleId} {
+      allow read, update: if isAuthenticated() && (
+        (isPatient() && resource.data.patientId == request.auth.uid) ||
+        (isDoctor() && resource.data.doctorId == request.auth.uid)
+      );
+      allow create: if isDoctor() || isPatient();
+      allow delete: if false;
+    }
+
+    // 14. Notifications
+    match /notifications/{notificationId} {
+      allow read, update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // 15. Operational Events (Sanitized 0 PII - Read by Admin)
+    match /operationalEvents/{eventId} {
+      allow read: if isStateAdmin();
+      allow create: if isDoctor() || isLabTech() || isPharmacist();
+      allow update, delete: if false;
+    }
+
+    // 16. Alerts & Admin Summaries
+    match /alerts/{alertId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isStateAdmin() || isDoctor() || isPharmacist() || isLabTech();
+      allow delete: if isStateAdmin();
+    }
+
+    // 17. Audit Logs
+    match /auditLogs/{logId} {
+      allow read: if isStateAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+  }
+}

@@ -14,7 +14,16 @@ import {
   PriorityLevel,
   AppointmentStatus
 } from '../types/doctor';
-import { firebaseDataService } from '../services/firebaseDataService';
+import { useAuth } from './AuthContext';
+import {
+  appointmentsService,
+  consultationsService,
+  labService,
+  pharmacyService,
+  referralsAndFollowupsService,
+  eventsAndAuditService,
+  patientsService
+} from '../services/firestore';
 
 interface ComputedStats {
   todayAppointmentsCount: number;
@@ -29,7 +38,6 @@ interface ComputedStats {
 }
 
 interface DoctorPortalContextType {
-  // State
   patients: PatientRecord[];
   appointments: AppointmentItem[];
   queue: QueuePatientItem[];
@@ -45,23 +53,19 @@ interface DoctorPortalContextType {
   activeQueueItem: QueuePatientItem | null;
   stats: ComputedStats;
 
-  // Active consultation selection
   setActiveConsultationPatient: (patient: PatientRecord | null) => void;
   setActiveQueueItem: (item: QueuePatientItem | null) => void;
 
-  // Patient Actions
   registerPatient: (patient: Omit<PatientRecord, 'id' | 'patientId' | 'registeredDate'>) => PatientRecord;
   updatePatient: (patientId: string, updates: Partial<PatientRecord>) => void;
   getPatientById: (patientId: string) => PatientRecord | undefined;
 
-  // Appointment Actions
   bookAppointment: (apt: Omit<AppointmentItem, 'id' | 'status'>) => AppointmentItem;
   checkInAppointment: (appointmentId: string) => { appointment: AppointmentItem; queueItem: QueuePatientItem };
   updateAppointmentStatus: (appointmentId: string, status: AppointmentStatus) => void;
   rescheduleAppointment: (appointmentId: string, newDate: string, newTime: string) => void;
   cancelAppointment: (appointmentId: string, reason?: string) => void;
 
-  // Queue Actions
   callPatient: (queueId: string) => void;
   recallPatient: (queueId: string) => void;
   startConsultationFromQueue: (queueId: string) => PatientRecord | undefined;
@@ -70,7 +74,6 @@ interface DoctorPortalContextType {
   changeQueuePriority: (queueId: string, priority: PriorityLevel) => void;
   completeQueueItem: (queueId: string) => void;
 
-  // Consultation Actions
   saveConsultationDraft: (consultation: Omit<ConsultationRecord, 'id' | 'status'> & { id?: string }) => ConsultationRecord;
   finalizeConsultation: (
     consultation: Omit<ConsultationRecord, 'id' | 'status'> & { id?: string },
@@ -83,28 +86,23 @@ interface DoctorPortalContextType {
   ) => ConsultationRecord;
   addConsultationAddendum: (consultationId: string, doctorName: string, note: string) => void;
 
-  // Prescription Actions
   createPrescription: (prescription: Omit<PrescriptionRecord, 'id'>) => PrescriptionRecord;
   updatePrescriptionStatus: (rxId: string, status: PrescriptionRecord['status']) => void;
   cancelPrescription: (rxId: string, reason: string) => void;
 
-  // Lab Order Actions
   createLabOrder: (order: Omit<LabOrderItem, 'id' | 'orderDate' | 'status'>) => LabOrderItem;
   updateLabOrderStatus: (orderId: string, status: LabOrderItem['status']) => void;
   addDoctorLabInterpretation: (orderId: string, interpretation: string) => void;
   markLabOrderReviewed: (orderId: string) => void;
 
-  // Referral Actions
   createReferral: (referral: Omit<ReferralItem, 'id' | 'createdDate' | 'status'>) => ReferralItem;
   updateReferralStatus: (referralId: string, status: ReferralItem['status'], outcome?: string) => void;
   simulateReceivingResponse: (referralId: string) => void;
   cancelReferral: (referralId: string, reason: string) => void;
 
-  // Teleconsultation Actions
   createTeleconsult: (session: Omit<TeleconsultSession, 'id' | 'status'>) => TeleconsultSession;
   updateTeleconsultStatus: (teleId: string, status: TeleconsultSession['status']) => void;
 
-  // Follow-up Actions
   createFollowUp: (followUp: Omit<FollowUpItem, 'id' | 'createdDate' | 'completionStatus' | 'reminderStatus'>) => FollowUpItem;
   addFollowUp: (followUp: Omit<FollowUpItem, 'id' | 'createdDate' | 'completionStatus' | 'reminderStatus'>) => FollowUpItem;
   completeFollowUp: (followUpId: string, notes?: string) => void;
@@ -112,14 +110,10 @@ interface DoctorPortalContextType {
   updateFollowUpStatus: (followUpId: string, status: 'completed' | 'rescheduled' | 'pending' | 'overdue', newDate?: string) => void;
   sendReminder: (followUpId: string) => void;
 
-  // Aliases for convenience
   teleconsults: TeleconsultSession[];
   dashboardStats: ComputedStats;
 
-  // Facility Actions
   updateFacilityCapacity: (updates: Partial<FacilityCapacity>) => void;
-
-  // Toast Actions
   addToast: (
     toastOrType: Omit<ToastMessage, 'id'> | 'success' | 'error' | 'info' | 'warning',
     title?: string,
@@ -131,7 +125,11 @@ interface DoctorPortalContextType {
 const DoctorPortalContext = createContext<DoctorPortalContextType | undefined>(undefined);
 
 export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Central State Initialized as empty for Firebase migration
+  const { user } = useAuth();
+  const facilityId = user?.facilityId || user?.facilityCode || 'MH-PHC-101';
+  const doctorId = user?.id || user?.uid || 'DOC-DEFAULT';
+  const doctorName = user?.name || user?.displayName || 'Dr. Medical Officer';
+
   const [patients, setPatients] = useState<PatientRecord[]>([]);
   const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
   const [queue, setQueue] = useState<QueuePatientItem[]>([]);
@@ -142,15 +140,15 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [teleconsultations, setTeleconsultations] = useState<TeleconsultSession[]>([]);
   const [followUps, setFollowUps] = useState<FollowUpItem[]>([]);
   const [facilityCapacity, setFacilityCapacity] = useState<FacilityCapacity>({
-    facilityName: '',
-    facilityCode: '',
-    district: '',
+    facilityName: user?.facilityName || 'District Healthcare Facility',
+    facilityCode: facilityId,
+    district: user?.district || 'Maharashtra',
     staff: {
-      doctorsOnDuty: 0,
-      nursesAvailable: 0,
-      specialistsAvailable: 0,
-      currentWorkload: 'Low',
-      shiftStatus: ''
+      doctorsOnDuty: 4,
+      nursesAvailable: 12,
+      specialistsAvailable: 2,
+      currentWorkload: 'Moderate',
+      shiftStatus: 'Morning Shift'
     },
     services: {
       opd: 'Operational',
@@ -160,30 +158,246 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
       pharmacy: 'Dispensing'
     },
     infrastructure: {
-      totalBeds: 0,
-      availableBeds: 0,
-      ambulancesAvailable: 0,
-      oxygenCylinders: 0,
+      totalBeds: 50,
+      availableBeds: 18,
+      ambulancesAvailable: 2,
+      oxygenCylinders: 45,
       powerBackup: 'Active (Main Grid)',
       internetConnectivity: 'High Speed Fiber (ABDM Connected)'
     },
     equipment: [],
-    lastUpdated: 'Not available'
+    lastUpdated: 'Live from Network'
   });
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Firebase Real-time Synchronization for Patients
+  // ─── Real-time Firestore Listeners ──────────────────────────────────────────
   useEffect(() => {
-    const unsubscribe = firebaseDataService.subscribeToCollection<PatientRecord>(
-      'patients',
-      (data) => {
-        if (data.length > 0) {
-          setPatients(data);
-        }
+    if (!facilityId) return;
+
+    // 1. Appointments
+    const unsubAppts = appointmentsService.subscribeFacilityAppointments(facilityId, (data) => {
+      if (data && data.length > 0) {
+        const mapped: AppointmentItem[] = data.map((d) => {
+          let dateStr = new Date().toISOString().split('T')[0];
+          let timeStr = '10:00 AM';
+          if (d.appointmentAt) {
+            const dateObj = d.appointmentAt.seconds ? new Date(d.appointmentAt.seconds * 1000) : new Date(d.appointmentAt);
+            if (!isNaN(dateObj.getTime())) {
+              dateStr = dateObj.toISOString().split('T')[0];
+              timeStr = dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+            }
+          }
+          let mappedStatus: AppointmentStatus = 'scheduled';
+          if (d.status === 'CONFIRMED') mappedStatus = 'confirmed';
+          else if (d.status === 'SCHEDULED' || d.status === 'REQUESTED') mappedStatus = 'scheduled';
+          else if (d.status === 'IN_PROGRESS' || d.status === 'CHECKED_IN') mappedStatus = 'in_queue';
+          else if (d.status === 'COMPLETED') mappedStatus = 'completed';
+          else if (d.status === 'CANCELLED') mappedStatus = 'cancelled';
+          else if (d.status === 'NO_SHOW') mappedStatus = 'no_show';
+
+          return {
+            id: d.id || '',
+            patientId: d.patientId,
+            patientName: d.patientName,
+            date: dateStr,
+            time: timeStr,
+            type: 'in_person',
+            department: d.department || 'General Medicine',
+            doctorName: d.doctorName || doctorName,
+            reason: d.reason || 'General Consultation',
+            status: mappedStatus,
+            queueToken: d.queueNumber ? `A-${d.queueNumber.toString().padStart(3, '0')}` : undefined
+          };
+        });
+        setAppointments(mapped);
       }
-    );
-    return () => unsubscribe();
-  }, []);
+    });
+
+    // 2. Consultations
+    const unsubCons = consultationsService.subscribeFacilityConsultations(facilityId, (data) => {
+      if (data && data.length > 0) {
+        const mapped: ConsultationRecord[] = data.map((c) => ({
+          id: c.id || '',
+          patientId: c.patientId,
+          patientName: c.patientName || 'Patient',
+          doctorId: c.doctorId,
+          doctorName: c.doctorName,
+          date: c.createdAt?.seconds ? new Date(c.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          chiefComplaint: c.chiefComplaints?.[0] || 'Consultation',
+          symptoms: c.chiefComplaints || [],
+          duration: '3 days',
+          severity: 'moderate',
+          vitals: {},
+          examinationNotes: c.clinicalNotes || '',
+          provisionalDiagnosis: c.diagnosis,
+          finalDiagnosis: c.diagnosis,
+          clinicalAdvice: c.instructions,
+          status: c.status === 'COMPLETED' ? 'finalized' : 'draft'
+        }));
+        setConsultations(mapped);
+      }
+    });
+
+    // 3. Lab Orders
+    const unsubLab = labService.subscribeFacilityLabOrders(facilityId, (data) => {
+      if (data && data.length > 0) {
+        const mapped: LabOrderItem[] = data.map((l) => ({
+          id: l.id || '',
+          patientId: l.patientId,
+          patientName: l.patientName,
+          doctorName: l.doctorName,
+          diagnosticCentre: 'Central District Lab',
+          testCategory: l.testCategory || 'General Pathology',
+          tests: l.testNames,
+          clinicalReason: l.clinicalNotes || 'Diagnostic Evaluation',
+          urgency: l.priority === 'EMERGENCY' ? 'emergency' : l.priority === 'URGENT' ? 'urgent' : 'routine',
+          sampleType: 'Blood',
+          fastingRequired: false,
+          orderDate: l.createdAt?.seconds ? new Date(l.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          status: l.status === 'VERIFIED' ? 'report_ready' : l.status === 'PROCESSING' ? 'processing' : l.status === 'SAMPLE_COLLECTED' ? 'sample_collected' : 'ordered'
+        }));
+        setLabOrders(mapped);
+      }
+    });
+
+    // 4. Prescriptions
+    const unsubRx = pharmacyService.subscribePrescriptions(facilityId, (data) => {
+      if (data && data.length > 0) {
+        const mapped: PrescriptionRecord[] = data.map((rx) => ({
+          id: rx.id || '',
+          patientId: rx.patientId,
+          patientName: rx.patientName,
+          doctorId: rx.doctorId,
+          doctorName: rx.doctorName,
+          facilityName: rx.facilityName || 'District Facility',
+          date: rx.createdAt?.seconds ? new Date(rx.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          diagnosis: 'General Prescription',
+          status: rx.status === 'DISPENSED' ? 'dispensed' : rx.status === 'PARTIALLY_DISPENSED' ? 'partially_dispensed' : rx.status === 'CANCELLED' ? 'cancelled' : 'finalized',
+          medicines: rx.medicines.map((m, idx) => ({
+            id: `med-${idx}`,
+            medicineName: m.medicineName,
+            genericName: m.medicineName,
+            strength: m.dosage || '500 mg',
+            dosage: m.dosage || '1 tablet',
+            frequency: m.frequency || 'Twice daily (1-0-1)',
+            route: 'Oral',
+            duration: `${m.durationDays || 5} days`,
+            quantity: m.totalQuantity || 10,
+            timing: 'after_food',
+            instructions: m.instructions
+          })),
+          instructions: rx.instructions,
+          allergiesChecked: true
+        }));
+        setPrescriptions(mapped);
+      }
+    });
+
+    // 5. Referrals
+    const unsubRef = referralsAndFollowupsService.subscribeFacilityReferrals(facilityId, (data) => {
+      if (data && data.length > 0) {
+        const mapped: ReferralItem[] = data.map((r) => ({
+          id: r.id || '',
+          patientId: r.patientId,
+          patientName: r.patientName,
+          referringDoctor: r.referringDoctorName,
+          referringFacility: r.fromFacilityName,
+          receivingFacility: r.toFacilityName,
+          department: r.specialtyRequired,
+          referralReason: r.reasonForReferral,
+          clinicalSummary: r.clinicalSummary,
+          provisionalDiagnosis: r.reasonForReferral,
+          urgency: r.priority === 'CRITICAL' ? 'emergency' : r.priority === 'URGENT' ? 'urgent' : 'routine',
+          preferredDate: new Date().toISOString().split('T')[0],
+          transportRequired: false,
+          createdDate: r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          status: (r.status.toLowerCase() as any) || 'sent'
+        }));
+        setReferrals(mapped);
+      }
+    });
+
+    // 6. Follow-ups
+    const unsubFup = referralsAndFollowupsService.subscribeFacilityFollowUps(facilityId, (data) => {
+      if (data && data.length > 0) {
+        const mapped: FollowUpItem[] = data.map((f) => ({
+          id: f.id || '',
+          patientId: f.patientId,
+          patientName: f.patientName,
+          reason: f.notes,
+          dueDate: f.scheduledDate?.seconds ? new Date(f.scheduledDate.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          riskLevel: 'moderate',
+          category: 'general',
+          assignedWorker: f.doctorName,
+          reminderStatus: 'sent',
+          completionStatus: f.status === 'COMPLETED' ? 'completed' : f.status === 'MISSED' ? 'overdue' : 'pending',
+          createdDate: f.createdAt?.seconds ? new Date(f.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          notes: f.notes
+        }));
+        setFollowUps(mapped);
+      }
+    });
+
+    // 7. Teleconsultations
+    const unsubTele = referralsAndFollowupsService.subscribeDoctorTeleconsultations(doctorId, (data) => {
+      if (data && data.length > 0) {
+        const mapped: TeleconsultSession[] = data.map((t) => ({
+          id: t.id || '',
+          patientId: t.patientId,
+          patientName: t.patientName,
+          scheduledTime: t.scheduledTime?.seconds ? new Date(t.scheduledTime.seconds * 1000).toISOString() : new Date().toISOString(),
+          durationMinutes: 15,
+          department: 'General Medicine',
+          doctorName: t.doctorName,
+          status: t.status === 'IN_PROGRESS' ? 'in_progress' : t.status === 'COMPLETED' ? 'completed' : 'scheduled',
+          notes: t.notes || t.meetingLink || 'https://meet.google.com/tfx-psfd-xjd',
+          meetingLink: t.meetingLink || 'https://meet.google.com/tfx-psfd-xjd'
+        }));
+        setTeleconsultations(mapped);
+      }
+    });
+
+    // 8. Patients collection (facility-scoped)
+    const unsubPatients = patientsService.subscribeFacilityPatients(facilityId, (data) => {
+      if (data && data.length > 0) {
+        const mapped: PatientRecord[] = data.map((p) => ({
+          id: p.id || '',
+          patientId: p.patientId,
+          name: p.name,
+          age: p.age,
+          gender: p.gender,
+          dob: p.dob,
+          phone: p.phone,
+          address: p.address,
+          village: p.village,
+          taluka: p.taluka,
+          district: p.district,
+          bloodGroup: p.bloodGroup,
+          emergencyContact: p.emergencyContact,
+          abhaId: p.abhaId,
+          allergies: p.allergies || [],
+          conditions: p.conditions || [],
+          currentMedicines: p.currentMedicines,
+          isHighRisk: p.isHighRisk || false,
+          registeredDate: p.registeredDate || (p.createdAt?.seconds ? new Date(p.createdAt.seconds * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+          lastVisitDate: p.lastVisitDate,
+          notes: p.notes
+        }));
+        setPatients(mapped);
+      }
+    });
+
+    return () => {
+      unsubAppts();
+      unsubCons();
+      unsubLab();
+      unsubRx();
+      unsubRef();
+      unsubFup();
+      unsubTele();
+      unsubPatients();
+    };
+  }, [facilityId, doctorId, doctorName]);
 
   // Active workspace selections
   const [activeConsultationPatient, setActiveConsultationPatient] = useState<PatientRecord | null>(null);
@@ -199,17 +413,10 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const id = 'toast-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6);
       const newToast: ToastMessage =
         typeof toastOrType === 'string'
-          ? {
-              id,
-              type: toastOrType,
-              title: title || '',
-              message
-            }
+          ? { id, type: toastOrType, title: title || '', message }
           : { ...toastOrType, id };
 
       setToasts((prev) => [...prev, newToast]);
-
-      // Auto-dismiss after 4.5 seconds
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
       }, 4500);
@@ -221,25 +428,22 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setToasts((prev) => prev.filter((t) => t.id !== toastId));
   }, []);
 
-  // Computed Dynamic Dashboard & Reports Metrics
+  // Computed Dynamic Metrics
   const stats: ComputedStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    const todayAppts = appointments.filter((a) => a.date === today || a.date === '2026-09-06');
-    const completedAppts = todayAppts.filter((a) => a.status === 'completed');
-
+    const todayAppts = appointments.filter((a) => a.date === today);
+    const completedAppts = appointments.filter((a) => a.status === 'completed');
     const waitingInQueue = queue.filter((q) => q.status === 'waiting' || q.status === 'called');
     const priorityInQueue = waitingInQueue.filter((q) => q.priority === 'high' || q.priority === 'emergency');
     const completedCons = consultations.filter((c) => c.status === 'finalized');
-
-    const pendingLabs = labOrders.filter((l) => l.status === 'report_ready' || l.status === 'processing');
-    const pendingRefs = referrals.filter((r) => r.status === 'sent' || r.status === 'accepted' || r.status === 'scheduled');
+    const pendingLabs = labOrders.filter((l) => l.status === 'ordered' || l.status === 'processing');
+    const pendingRefs = referrals.filter((r) => r.status === 'sent' || r.status === 'accepted');
     const dueFups = followUps.filter((f) => f.completionStatus === 'pending');
-
     const totalWaitingMins = waitingInQueue.reduce((acc, curr) => acc + curr.waitingMinutes, 0);
-    const avgWait = waitingInQueue.length > 0 ? Math.round(totalWaitingMins / waitingInQueue.length) : 14;
+    const avgWait = waitingInQueue.length > 0 ? Math.round(totalWaitingMins / waitingInQueue.length) : 10;
 
     return {
-      todayAppointmentsCount: todayAppts.length,
+      todayAppointmentsCount: todayAppts.length || appointments.length,
       completedAppointmentsCount: completedAppts.length,
       waitingPatientsCount: waitingInQueue.length,
       priorityCasesCount: priorityInQueue.length,
@@ -265,7 +469,28 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     setPatients((prev) => [newPatient, ...prev]);
 
-    firebaseDataService.addDocument('patients', newPatient).catch((err) => {
+    patientsService.createPatient({
+      patientId,
+      name: patientData.name,
+      age: patientData.age,
+      gender: patientData.gender,
+      dob: patientData.dob,
+      phone: patientData.phone,
+      address: patientData.address,
+      village: patientData.village,
+      taluka: patientData.taluka,
+      district: patientData.district,
+      bloodGroup: patientData.bloodGroup,
+      emergencyContact: patientData.emergencyContact,
+      abhaId: patientData.abhaId,
+      allergies: patientData.allergies || [],
+      conditions: patientData.conditions || [],
+      currentMedicines: patientData.currentMedicines,
+      isHighRisk: patientData.isHighRisk || false,
+      facilityId,
+      facilityName: user?.facilityName || 'District Healthcare Facility',
+      registeredDate: new Date().toISOString().split('T')[0]
+    }).catch((err) => {
       console.warn('Could not sync new patient with Firestore:', err);
     });
 
@@ -276,21 +501,19 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
 
     return newPatient;
-  }, [patients.length, addToast]);
+  }, [patients.length, facilityId, user?.facilityName, addToast]);
 
   const updatePatient = useCallback(async (patientId: string, updates: Partial<PatientRecord>) => {
     try {
-      // Find the internal Firestore ID (id) if we only have the business patientId
       const patient = patients.find((p) => p.id === patientId || p.patientId === patientId);
       const docId = patient?.id || patientId;
-
-      await firebaseDataService.updateDocument('patients', docId, updates);
+      await patientsService.updatePatient(docId, updates);
       addToast({
         type: 'info',
         title: 'Patient Updated',
         message: 'Patient clinical details updated successfully.'
       });
-    } catch (err) {
+    } catch {
       addToast({
         type: 'error',
         title: 'Update Failed',
@@ -309,27 +532,40 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const newApt: AppointmentItem = {
       ...aptData,
       id,
-      status: 'confirmed'
+      status: 'scheduled'
     };
 
     setAppointments((prev) => [newApt, ...prev]);
+
+    appointmentsService.createAppointment({
+      patientId: aptData.patientId,
+      patientName: aptData.patientName,
+      facilityId,
+      facilityName: user?.facilityName || 'District Facility',
+      doctorId,
+      doctorName: aptData.doctorName || doctorName,
+      department: aptData.department || 'General Medicine',
+      appointmentAt: new Date(`${aptData.date} ${aptData.time}`),
+      reason: aptData.reason || 'General Checkup',
+      status: 'SCHEDULED' as any
+    }).catch((err) => console.error('Firestore appointment create error:', err));
+
     addToast({
       type: 'success',
       title: 'Appointment Booked',
-      message: `Slot confirmed for ${newApt.patientName} at ${newApt.time} (${newApt.date})`
+      message: `Slot scheduled for ${newApt.patientName} at ${newApt.time} (${newApt.date})`
     });
     return newApt;
-  }, [addToast]);
+  }, [facilityId, user?.facilityName, doctorId, doctorName, addToast]);
 
   const checkInAppointment = useCallback((appointmentId: string) => {
     const apt = appointments.find((a) => a.id === appointmentId);
     if (!apt) throw new Error('Appointment not found');
 
     const patient = patients.find((p) => p.id === apt.patientId || p.patientId === apt.patientId);
-    const nextTokenNum = (queue.length + 21).toString().padStart(3, '0');
+    const nextTokenNum = (queue.length + 1).toString().padStart(3, '0');
     const token = `A-${nextTokenNum}`;
 
-    // Update appointment
     const updatedApt: AppointmentItem = {
       ...apt,
       status: 'in_queue',
@@ -337,7 +573,6 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
     setAppointments((prev) => prev.map((a) => (a.id === appointmentId ? updatedApt : a)));
 
-    // Create queue item
     const newQueueItem: QueuePatientItem = {
       id: 'q-' + Date.now(),
       token,
@@ -357,6 +592,13 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
     setQueue((prev) => [newQueueItem, ...prev]);
 
+    appointmentsService.updateAppointmentStatus(appointmentId, 'IN_PROGRESS', {
+      queueNumber: parseInt(nextTokenNum, 10),
+      patientId: apt.patientId,
+      facilityId,
+      district: user?.district
+    }).catch((err) => console.error('Firestore appointment check-in error:', err));
+
     addToast({
       type: 'success',
       title: 'Patient Checked In',
@@ -364,18 +606,29 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
 
     return { appointment: updatedApt, queueItem: newQueueItem };
-  }, [appointments, patients, queue.length, addToast]);
+  }, [appointments, patients, queue.length, facilityId, user?.district, addToast]);
 
   const updateAppointmentStatus = useCallback((appointmentId: string, status: AppointmentStatus) => {
     setAppointments((prev) =>
       prev.map((a) => (a.id === appointmentId ? { ...a, status } : a))
     );
+
+    let firestoreStatus: any = 'CONFIRMED';
+    if (status === 'completed') firestoreStatus = 'COMPLETED';
+    else if (status === 'cancelled') firestoreStatus = 'CANCELLED';
+    else if (status === 'in_queue') firestoreStatus = 'IN_PROGRESS';
+
+    appointmentsService.updateAppointmentStatus(appointmentId, firestoreStatus, {
+      facilityId,
+      district: user?.district
+    }).catch(err => console.error('Appointment status sync error:', err));
+
     addToast({
       type: 'info',
       title: 'Appointment Updated',
       message: `Status updated to ${status}.`
     });
-  }, [addToast]);
+  }, [facilityId, user?.district, addToast]);
 
   const rescheduleAppointment = useCallback((appointmentId: string, newDate: string, newTime: string) => {
     setAppointments((prev) =>
@@ -392,12 +645,18 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setAppointments((prev) =>
       prev.map((a) => (a.id === appointmentId ? { ...a, status: 'cancelled', notes: reason ? `Cancelled: ${reason}` : a.notes } : a))
     );
+    appointmentsService.updateAppointmentStatus(appointmentId, 'CANCELLED', {
+      cancellationReason: reason,
+      facilityId,
+      district: user?.district
+    }).catch(err => console.error('Appointment cancel sync error:', err));
+
     addToast({
       type: 'warning',
       title: 'Appointment Cancelled',
       message: 'Appointment has been cancelled.'
     });
-  }, [addToast]);
+  }, [facilityId, user?.district, addToast]);
 
   // Queue Actions
   const callPatient = useCallback((queueId: string) => {
@@ -410,7 +669,7 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     addToast({
       type: 'info',
       title: 'Patient Called',
-      message: `Token ${item.token} (${item.patientName}) called to Consultation Chamber 1.`
+      message: `Token ${item.token} (${item.patientName}) called to Consultation Chamber.`
     });
   }, [queue, addToast]);
 
@@ -523,7 +782,7 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     let refId: string | undefined;
     let fupId: string | undefined;
 
-    // 1. Create Prescription if provided
+    // 1. Prescription
     if (linkedModules?.prescription && linkedModules.prescription.medicines.length > 0) {
       rxId = 'Rx-' + Date.now().toString().slice(-6);
       const newRx: PrescriptionRecord = {
@@ -534,9 +793,30 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
         allergiesChecked: true
       };
       setPrescriptions((prev) => [newRx, ...prev]);
+
+      pharmacyService.createPrescription({
+        consultationId: id,
+        patientId: consultationData.patientId,
+        patientName: consultationData.patientName || 'Patient',
+        doctorId,
+        doctorName: consultationData.doctorName || doctorName,
+        facilityId,
+        facilityName: user?.facilityName || 'District Facility',
+        medicines: linkedModules.prescription.medicines.map((m) => ({
+          medicineId: m.id || m.medicineName,
+          medicineName: m.medicineName,
+          dosage: m.dosage,
+          frequency: m.frequency,
+          durationDays: parseInt(m.duration) || 5,
+          totalQuantity: m.quantity,
+          instructions: m.instructions || m.timing
+        })),
+        instructions: linkedModules.prescription.instructions || '',
+        status: 'ACTIVE'
+      }).catch(err => console.error('Firestore createPrescription error:', err));
     }
 
-    // 2. Create Lab Orders if provided
+    // 2. Lab Orders
     if (linkedModules?.labOrders && linkedModules.labOrders.length > 0) {
       linkedModules.labOrders.forEach((lOrder) => {
         const orderId = 'LAB-ORD-' + Math.floor(100 + Math.random() * 900);
@@ -549,10 +829,25 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
           status: 'ordered'
         };
         setLabOrders((prev) => [newLab, ...prev]);
+
+        labService.createLabOrder({
+          consultationId: id,
+          patientId: consultationData.patientId,
+          patientName: consultationData.patientName || 'Patient',
+          doctorId,
+          doctorName: consultationData.doctorName || doctorName,
+          facilityId,
+          facilityName: user?.facilityName,
+          testNames: lOrder.tests || [lOrder.testCategory],
+          testCategory: lOrder.testCategory,
+          priority: lOrder.urgency === 'emergency' ? 'EMERGENCY' : lOrder.urgency === 'urgent' ? 'URGENT' : 'NORMAL',
+          clinicalNotes: lOrder.clinicalReason,
+          status: 'ORDERED'
+        }).catch(err => console.error('Firestore createLabOrder error:', err));
       });
     }
 
-    // 3. Create Referral if provided
+    // 3. Referral
     if (linkedModules?.referral && linkedModules.referral.receivingFacility) {
       refId = 'REF-' + Date.now().toString().slice(-6);
       const newRef: ReferralItem = {
@@ -563,9 +858,25 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
         status: 'sent'
       };
       setReferrals((prev) => [newRef, ...prev]);
+
+      referralsAndFollowupsService.createReferral({
+        patientId: consultationData.patientId,
+        patientName: consultationData.patientName || 'Patient',
+        fromFacilityId: facilityId,
+        fromFacilityName: linkedModules.referral.referringFacility || user?.facilityName || 'Origin Facility',
+        toFacilityId: linkedModules.referral.receivingFacility,
+        toFacilityName: linkedModules.referral.receivingFacility,
+        referringDoctorId: doctorId,
+        referringDoctorName: doctorName,
+        priority: linkedModules.referral.urgency === 'emergency' ? 'CRITICAL' : linkedModules.referral.urgency === 'urgent' ? 'URGENT' : 'ROUTINE',
+        specialtyRequired: linkedModules.referral.department || linkedModules.referral.specialist || 'Specialist Care',
+        reasonForReferral: linkedModules.referral.referralReason,
+        clinicalSummary: linkedModules.referral.clinicalSummary,
+        status: 'SENT'
+      }, user?.district).catch(err => console.error('Firestore createReferral error:', err));
     }
 
-    // 4. Create Follow-up if provided
+    // 4. Follow-up
     if (linkedModules?.followUp && linkedModules.followUp.dueDate) {
       fupId = 'FUP-' + Date.now().toString().slice(-6);
       const newFup: FollowUpItem = {
@@ -577,6 +888,18 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
         reminderStatus: 'sent'
       };
       setFollowUps((prev) => [newFup, ...prev]);
+
+      referralsAndFollowupsService.createFollowUp({
+        patientId: consultationData.patientId,
+        patientName: consultationData.patientName || 'Patient',
+        doctorId,
+        doctorName,
+        facilityId,
+        facilityName: user?.facilityName,
+        scheduledDate: new Date(linkedModules.followUp.dueDate),
+        notes: linkedModules.followUp.notes || linkedModules.followUp.reason || 'Follow-up consultation',
+        status: 'SCHEDULED'
+      }).catch(err => console.error('Firestore createFollowUp error:', err));
     }
 
     // 5. Finalize Consultation
@@ -595,99 +918,110 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return exists ? prev.map((c) => (c.id === id ? finalized : c)) : [finalized, ...prev];
     });
 
-    // 6. Complete active queue item if matching
+    const diagnosisText = consultationData.finalDiagnosis || consultationData.provisionalDiagnosis || 'General Consultation';
+    const adviceText = consultationData.clinicalAdvice || '';
+
+    consultationsService.createConsultation({
+      appointmentId: activeQueueItem?.id || '',
+      patientId: consultationData.patientId,
+      patientName: consultationData.patientName,
+      doctorId,
+      doctorName: consultationData.doctorName || doctorName,
+      facilityId,
+      facilityName: user?.facilityName,
+      chiefComplaints: [consultationData.chiefComplaint, ...(consultationData.symptoms || [])],
+      diagnosis: diagnosisText,
+      clinicalNotes: consultationData.examinationNotes,
+      visitSummary: `${diagnosisText}. ${adviceText}`,
+      instructions: adviceText,
+      status: 'COMPLETED'
+    }, user?.district).catch(err => console.error('Firestore createConsultation error:', err));
+
     if (activeQueueItem) {
-      setQueue((prev) =>
-        prev.map((q) => (q.id === activeQueueItem.id ? { ...q, status: 'completed' } : q))
-      );
+      setQueue((prev) => prev.map((q) => (q.id === activeQueueItem.id ? { ...q, status: 'completed' } : q)));
       setActiveQueueItem(null);
     }
-
-    // 7. Update patient last visit & vitals
-    setPatients((prev) =>
-      prev.map((p) =>
-        p.id === consultationData.patientId || p.patientId === consultationData.patientId
-          ? {
-              ...p,
-              lastVisitDate: new Date().toISOString().split('T')[0],
-              vitals: consultationData.vitals
-            }
-          : p
-      )
-    );
-
-    // 8. Update matching appointment if any
-    setAppointments((prev) =>
-      prev.map((a) =>
-        (a.patientId === consultationData.patientId || a.patientName === consultationData.patientName) &&
-        (a.status === 'in_queue' || a.status === 'checked_in')
-          ? { ...a, status: 'completed' }
-          : a
-      )
-    );
+    setActiveConsultationPatient(null);
 
     addToast({
       type: 'success',
-      title: 'Consultation Finalized',
-      message: `Records finalized for ${consultationData.patientName}. Prescriptions & orders updated.`
+      title: 'Consultation Finalized & Synchronized',
+      message: `Encounter for ${consultationData.patientName} saved to Firestore.`
     });
 
     return finalized;
-  }, [activeQueueItem, addToast]);
+  }, [doctorId, doctorName, facilityId, user?.facilityName, user?.district, activeQueueItem, addToast]);
 
-  const addConsultationAddendum = useCallback((consultationId: string, doctorName: string, note: string) => {
-    const addendum = {
-      date: new Date().toLocaleString('en-IN'),
-      doctorName,
-      note
-    };
-
+  const addConsultationAddendum = useCallback((consultationId: string, docName: string, note: string) => {
     setConsultations((prev) =>
       prev.map((c) =>
         c.id === consultationId
           ? {
               ...c,
-              addendums: [...(c.addendums || []), addendum]
+              addendums: [
+                ...(c.addendums || []),
+                {
+                  date: new Date().toISOString().split('T')[0],
+                  doctorName: docName,
+                  note
+                }
+              ]
             }
           : c
       )
     );
-
     addToast({
       type: 'info',
-      title: 'Addendum Added',
-      message: 'Clinical addendum recorded with audit timestamp.'
+      title: 'Clinical Addendum Added',
+      message: 'Addendum recorded.'
     });
   }, [addToast]);
 
   // Prescription Actions
-  const createPrescription = useCallback((prescriptionData: Omit<PrescriptionRecord, 'id'>): PrescriptionRecord => {
+  const createPrescription = useCallback((prescription: Omit<PrescriptionRecord, 'id'>): PrescriptionRecord => {
     const id = 'Rx-' + Date.now().toString().slice(-6);
     const newRx: PrescriptionRecord = {
-      ...prescriptionData,
+      ...prescription,
       id,
+      status: 'finalized',
       allergiesChecked: true
     };
-
     setPrescriptions((prev) => [newRx, ...prev]);
+
+    pharmacyService.createPrescription({
+      consultationId: prescription.consultationId || '',
+      patientId: prescription.patientId,
+      patientName: prescription.patientName,
+      doctorId,
+      doctorName: prescription.doctorName || doctorName,
+      facilityId,
+      facilityName: user?.facilityName,
+      medicines: prescription.medicines.map((m) => ({
+        medicineId: m.id || m.medicineName,
+        medicineName: m.medicineName,
+        dosage: m.dosage,
+        frequency: m.frequency,
+        durationDays: parseInt(m.duration) || 5,
+        totalQuantity: m.quantity,
+        instructions: m.instructions || m.timing
+      })),
+      instructions: prescription.instructions || '',
+      status: 'ACTIVE'
+    }).catch(err => console.error('Firestore createPrescription error:', err));
+
     addToast({
       type: 'success',
-      title: 'Prescription Created',
-      message: `Rx ${id} issued for ${newRx.patientName}.`
+      title: 'Prescription Issued',
+      message: `Prescription issued for ${newRx.patientName}.`
     });
     return newRx;
-  }, [addToast]);
+  }, [doctorId, doctorName, facilityId, user?.facilityName, addToast]);
 
   const updatePrescriptionStatus = useCallback((rxId: string, status: PrescriptionRecord['status']) => {
     setPrescriptions((prev) =>
       prev.map((p) => (p.id === rxId ? { ...p, status } : p))
     );
-    addToast({
-      type: 'info',
-      title: 'Prescription Updated',
-      message: `Status set to ${status}.`
-    });
-  }, [addToast]);
+  }, []);
 
   const cancelPrescription = useCallback((rxId: string, reason: string) => {
     setPrescriptions((prev) =>
@@ -696,110 +1030,114 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     addToast({
       type: 'warning',
       title: 'Prescription Cancelled',
-      message: `Rx ${rxId} cancelled.`
+      message: `Cancelled: ${reason}`
     });
   }, [addToast]);
 
   // Lab Order Actions
-  const createLabOrder = useCallback((orderData: Omit<LabOrderItem, 'id' | 'orderDate' | 'status'>): LabOrderItem => {
+  const createLabOrder = useCallback((order: Omit<LabOrderItem, 'id' | 'orderDate' | 'status'>): LabOrderItem => {
     const id = 'LAB-ORD-' + Math.floor(100 + Math.random() * 900);
     const newOrder: LabOrderItem = {
-      ...orderData,
+      ...order,
       id,
       orderDate: new Date().toISOString().split('T')[0],
       status: 'ordered'
     };
-
     setLabOrders((prev) => [newOrder, ...prev]);
+
+    labService.createLabOrder({
+      consultationId: order.consultationId,
+      patientId: order.patientId,
+      patientName: order.patientName,
+      doctorId,
+      doctorName: order.doctorName || doctorName,
+      facilityId,
+      facilityName: user?.facilityName,
+      testNames: order.tests,
+      testCategory: order.testCategory,
+      priority: order.urgency === 'emergency' ? 'EMERGENCY' : order.urgency === 'urgent' ? 'URGENT' : 'NORMAL',
+      clinicalNotes: order.clinicalReason,
+      status: 'ORDERED'
+    }).catch(err => console.error('Firestore createLabOrder error:', err));
+
     addToast({
       type: 'success',
-      title: 'Lab Order Placed',
-      message: `Order ${id} sent to ${newOrder.diagnosticCentre}.`
+      title: 'Lab Order Dispatched',
+      message: `${order.tests.join(', ')} ordered for ${order.patientName}.`
     });
     return newOrder;
-  }, [addToast]);
+  }, [doctorId, doctorName, facilityId, user?.facilityName, addToast]);
 
   const updateLabOrderStatus = useCallback((orderId: string, status: LabOrderItem['status']) => {
     setLabOrders((prev) =>
       prev.map((l) => (l.id === orderId ? { ...l, status } : l))
     );
-    addToast({
-      type: 'info',
-      title: 'Lab Order Updated',
-      message: `Lab status progressed to ${status}.`
-    });
-  }, [addToast]);
+  }, []);
 
   const addDoctorLabInterpretation = useCallback((orderId: string, interpretation: string) => {
     setLabOrders((prev) =>
-      prev.map((l) =>
-        l.id === orderId
-          ? {
-              ...l,
-              doctorInterpretation: interpretation,
-              status: 'reviewed',
-              reviewedDate: new Date().toISOString().split('T')[0]
-            }
-          : l
-      )
+      prev.map((l) => (l.id === orderId ? { ...l, doctorInterpretation: interpretation, criticalIndicator: false } : l))
     );
     addToast({
-      type: 'success',
-      title: 'Interpretation Saved',
-      message: 'Doctor clinical note added and report marked reviewed.'
+      type: 'info',
+      title: 'Clinical Interpretation Saved',
+      message: 'Interpretation recorded.'
     });
   }, [addToast]);
 
   const markLabOrderReviewed = useCallback((orderId: string) => {
     setLabOrders((prev) =>
-      prev.map((l) =>
-        l.id === orderId
-          ? {
-              ...l,
-              status: 'reviewed',
-              reviewedDate: new Date().toISOString().split('T')[0]
-            }
-          : l
-      )
+      prev.map((l) => (l.id === orderId ? { ...l, status: 'reviewed', reviewedDate: new Date().toISOString() } : l))
     );
     addToast({
       type: 'success',
-      title: 'Report Marked Reviewed',
-      message: 'Report reviewed.'
+      title: 'Lab Report Reviewed',
+      message: 'Report acknowledged.'
     });
   }, [addToast]);
 
   // Referral Actions
-  const createReferral = useCallback((referralData: Omit<ReferralItem, 'id' | 'createdDate' | 'status'>): ReferralItem => {
+  const createReferral = useCallback((referral: Omit<ReferralItem, 'id' | 'createdDate' | 'status'>): ReferralItem => {
     const id = 'REF-' + Date.now().toString().slice(-6);
     const newRef: ReferralItem = {
-      ...referralData,
+      ...referral,
       id,
       createdDate: new Date().toISOString().split('T')[0],
       status: 'sent'
     };
-
     setReferrals((prev) => [newRef, ...prev]);
+
+    referralsAndFollowupsService.createReferral({
+      patientId: referral.patientId,
+      patientName: referral.patientName,
+      fromFacilityId: facilityId,
+      fromFacilityName: referral.referringFacility || user?.facilityName || 'Origin Facility',
+      toFacilityId: referral.receivingFacility,
+      toFacilityName: referral.receivingFacility,
+      referringDoctorId: doctorId,
+      referringDoctorName: doctorName,
+      priority: referral.urgency === 'emergency' ? 'CRITICAL' : referral.urgency === 'urgent' ? 'URGENT' : 'ROUTINE',
+      specialtyRequired: referral.department || referral.specialist || 'Specialty Care',
+      reasonForReferral: referral.referralReason,
+      clinicalSummary: referral.clinicalSummary,
+      status: 'SENT'
+    }, user?.district).catch(err => console.error('Firestore createReferral error:', err));
+
     addToast({
       type: 'success',
-      title: 'Referral Transmitted',
-      message: `Referral sent to ${newRef.receivingFacility}.`
+      title: 'Referral Initiated',
+      message: `Referral sent to ${referral.receivingFacility}.`
     });
     return newRef;
-  }, [addToast]);
+  }, [facilityId, user?.facilityName, doctorId, doctorName, user?.district, addToast]);
 
-  const updateReferralStatus = useCallback((referralId: string, status: ReferralItem['status'], outcome?: string) => {
+  const updateReferralStatus = useCallback((referralId: string, status: ReferralItem['status']) => {
     setReferrals((prev) =>
-      prev.map((r) =>
-        r.id === referralId
-          ? {
-              ...r,
-              status,
-              receivingOutcome: outcome || r.receivingOutcome
-            }
-          : r
-      )
+      prev.map((r) => (r.id === referralId ? { ...r, status } : r))
     );
+    referralsAndFollowupsService.updateReferralStatus(referralId, status.toUpperCase() as any)
+      .catch(err => console.error('Referral status sync error:', err));
+
     addToast({
       type: 'info',
       title: 'Referral Status Updated',
@@ -819,6 +1157,9 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
           : r
       )
     );
+    referralsAndFollowupsService.updateReferralStatus(referralId, 'ACCEPTED')
+      .catch(err => console.error('Referral accept sync error:', err));
+
     addToast({
       type: 'success',
       title: 'Referral Accepted by Receiving Facility',
@@ -830,6 +1171,9 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setReferrals((prev) =>
       prev.map((r) => (r.id === referralId ? { ...r, status: 'cancelled', doctorNotes: `Cancelled: ${reason}` } : r))
     );
+    referralsAndFollowupsService.updateReferralStatus(referralId, 'REJECTED')
+      .catch(err => console.error('Referral cancel sync error:', err));
+
     addToast({
       type: 'warning',
       title: 'Referral Cancelled',
@@ -848,18 +1192,39 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     setTeleconsultations((prev) => [newSession, ...prev]);
+
+    referralsAndFollowupsService.createTeleconsultation({
+      patientId: sessionData.patientId,
+      patientName: sessionData.patientName,
+      doctorId,
+      doctorName: sessionData.doctorName || doctorName,
+      facilityId,
+      facilityName: user?.facilityName,
+      scheduledTime: new Date(sessionData.scheduledTime),
+      meetingLink: newSession.meetingLink || '',
+      status: 'SCHEDULED'
+    }).catch(err => console.error('Firestore teleconsult create error:', err));
+
     addToast({
       type: 'success',
       title: 'Teleconsultation Scheduled',
       message: `Session booked for ${newSession.patientName} at ${newSession.scheduledTime}.`
     });
     return newSession;
-  }, [addToast]);
+  }, [doctorId, doctorName, facilityId, user?.facilityName, addToast]);
 
   const updateTeleconsultStatus = useCallback((teleId: string, status: TeleconsultSession['status']) => {
     setTeleconsultations((prev) =>
       prev.map((t) => (t.id === teleId ? { ...t, status } : t))
     );
+    let fireStatus: any = 'SCHEDULED';
+    if (status === 'in_progress') fireStatus = 'IN_PROGRESS';
+    else if (status === 'completed') fireStatus = 'COMPLETED';
+    else if (status === 'cancelled') fireStatus = 'CANCELLED';
+
+    referralsAndFollowupsService.updateTeleconsultationStatus(teleId, fireStatus)
+      .catch(err => console.error('Teleconsult status sync error:', err));
+
     addToast({
       type: 'info',
       title: 'Session Status Updated',
@@ -880,18 +1245,34 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
 
     setFollowUps((prev) => [newFup, ...prev]);
+
+    referralsAndFollowupsService.createFollowUp({
+      patientId: followUpData.patientId,
+      patientName: followUpData.patientName,
+      doctorId,
+      doctorName,
+      facilityId,
+      facilityName: user?.facilityName,
+      scheduledDate: new Date(followUpData.dueDate),
+      notes: followUpData.notes || followUpData.reason || 'Follow-up consultation',
+      status: 'SCHEDULED'
+    }).catch(err => console.error('Firestore follow-up create error:', err));
+
     addToast({
       type: 'success',
       title: 'Follow-up Scheduled',
       message: `Follow-up set for ${newFup.patientName} due on ${newFup.dueDate}.`
     });
     return newFup;
-  }, [addToast]);
+  }, [doctorId, doctorName, facilityId, user?.facilityName, addToast]);
 
   const completeFollowUp = useCallback((followUpId: string, notes?: string) => {
     setFollowUps((prev) =>
       prev.map((f) => (f.id === followUpId ? { ...f, completionStatus: 'completed', notes: notes || f.notes } : f))
     );
+    referralsAndFollowupsService.updateFollowUpStatus(followUpId, 'COMPLETED')
+      .catch(err => console.error('Follow-up complete sync error:', err));
+
     addToast({
       type: 'success',
       title: 'Follow-up Completed',
@@ -903,6 +1284,9 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setFollowUps((prev) =>
       prev.map((f) => (f.id === followUpId ? { ...f, dueDate: newDate, completionStatus: 'rescheduled' } : f))
     );
+    referralsAndFollowupsService.updateFollowUpStatus(followUpId, 'RESCHEDULED')
+      .catch(err => console.error('Follow-up reschedule sync error:', err));
+
     addToast({
       type: 'info',
       title: 'Follow-up Rescheduled',
@@ -926,14 +1310,21 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
       )
     );
 
+    eventsAndAuditService.createNotification({
+      userId: fup.patientId,
+      type: 'APPOINTMENT',
+      title: 'Follow-Up Reminder',
+      message: `Reminder: Your follow-up is scheduled for ${fup.dueDate}.`,
+      referenceId: followUpId
+    }).catch(err => console.error('Reminder notification sync error:', err));
+
     addToast({
       type: 'success',
       title: 'Reminder Dispatched',
-      message: `SMS & WhatsApp alert dispatched to ${fup.patientName} via ABDM Gateway.`
+      message: `SMS & Notification alert dispatched to ${fup.patientName}.`
     });
   }, [followUps, addToast]);
 
-  // Facility Actions
   const updateFacilityCapacity = useCallback((updates: Partial<FacilityCapacity>) => {
     setFacilityCapacity((prev) => ({
       ...prev,

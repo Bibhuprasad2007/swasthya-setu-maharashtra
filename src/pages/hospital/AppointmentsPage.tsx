@@ -69,36 +69,66 @@ export const AppointmentsPage: React.FC = () => {
     time: '11:00 AM'
   });
 
+  // Tab counts
+  const tabCounts = useMemo(() => {
+    return {
+      scheduled: appointments.filter((a) => a.status === 'scheduled' || a.status === 'confirmed').length,
+      queue: appointments.filter((a) => a.status === 'in_queue' || a.status === 'checked_in').length,
+      completed: appointments.filter((a) => a.status === 'completed').length,
+      cancelled: appointments.filter((a) => a.status === 'cancelled' || a.status === 'no_show').length
+    };
+  }, [appointments]);
+
   // Filter Appointments
   const filteredAppointments = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
     return appointments.filter((apt) => {
-      // Search query
+      // 1. Strict Tab Status Filtering
+      if (activeTab === 'scheduled') {
+        if (apt.status !== 'scheduled' && apt.status !== 'confirmed') {
+          return false;
+        }
+      } else if (activeTab === 'completed') {
+        if (apt.status !== 'completed') {
+          return false;
+        }
+      } else if (activeTab === 'cancelled') {
+        if (apt.status !== 'cancelled' && apt.status !== 'no_show') {
+          return false;
+        }
+      }
+
+      // 2. Search query
       const matchesSearch =
         searchQuery.trim() === '' ||
         apt.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         apt.patientId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         apt.reason.toLowerCase().includes(searchQuery.toLowerCase());
 
-      // Date tab
+      // 3. Date tab
       let matchesDate = true;
       if (dateFilter === 'today') {
-        matchesDate = apt.date === today || apt.date === '2026-09-06';
+        matchesDate = apt.date === today;
       } else if (dateFilter === 'tomorrow') {
-        matchesDate = apt.date === tomorrow || apt.date === '2026-09-07';
+        matchesDate = apt.date === tomorrow;
+      } else if (dateFilter === 'week') {
+        const aptDate = new Date(apt.date);
+        const now = new Date();
+        const diffDays = (aptDate.getTime() - now.getTime()) / (1000 * 3600 * 24);
+        matchesDate = diffDays >= -1 && diffDays <= 7;
       }
 
-      // Type
+      // 4. Type Filter
       const matchesType = typeFilter === 'all' || apt.type === typeFilter;
 
-      // Status
+      // 5. Status Dropdown Filter
       const matchesStatus = statusFilter === 'all' || apt.status === statusFilter;
 
       return matchesSearch && matchesDate && matchesType && matchesStatus;
     });
-  }, [appointments, searchQuery, dateFilter, typeFilter, statusFilter]);
+  }, [appointments, activeTab, searchQuery, dateFilter, typeFilter, statusFilter]);
 
   // Validation
   const validateBookForm = () => {
@@ -247,15 +277,18 @@ export const AppointmentsPage: React.FC = () => {
         <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200/80 dark:border-brand-dark-border p-2 shadow-xs">
           <div className="flex overflow-x-auto gap-2">
             {[
-              { id: 'scheduled', label: 'Scheduled Appointments', icon: Calendar },
-              { id: 'queue', label: 'Checked-in / Live Queue', icon: Clock },
-              { id: 'completed', label: 'Completed', icon: CheckCircle2 },
-              { id: 'cancelled', label: 'Cancelled / No-show', icon: Ban }
+              { id: 'scheduled', label: 'Scheduled Appointments', icon: Calendar, count: tabCounts.scheduled },
+              { id: 'queue', label: 'Checked-in / Live Queue', icon: Clock, count: tabCounts.queue },
+              { id: 'completed', label: 'Completed', icon: CheckCircle2, count: tabCounts.completed },
+              { id: 'cancelled', label: 'Cancelled / No-show', icon: Ban, count: tabCounts.cancelled }
             ].map((tabItem) => (
               <button
                 key={tabItem.id}
                 type="button"
-                onClick={() => setSearchParams({ tab: tabItem.id })}
+                onClick={() => {
+                  setStatusFilter('all');
+                  setSearchParams({ tab: tabItem.id });
+                }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
                   activeTab === tabItem.id
                     ? 'bg-brand-blue-50 dark:bg-brand-blue-900/40 text-brand-blue-700 dark:text-brand-blue-300 shadow-inner'
@@ -264,6 +297,15 @@ export const AppointmentsPage: React.FC = () => {
               >
                 <tabItem.icon className="w-4 h-4" />
                 <span>{tabItem.label}</span>
+                {tabItem.count !== undefined && (
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full transition-colors ${
+                    activeTab === tabItem.id
+                      ? 'bg-brand-blue-200 dark:bg-brand-blue-800 text-brand-blue-900 dark:text-brand-blue-100'
+                      : 'bg-slate-200 dark:bg-brand-dark-border text-slate-700 dark:text-brand-dark-muted'
+                  }`}>
+                    {tabItem.count}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -327,11 +369,21 @@ export const AppointmentsPage: React.FC = () => {
                 className="px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-brand-dark-elevated border border-slate-200 dark:border-brand-dark-border text-slate-700 dark:text-brand-dark-text focus:outline-none focus:ring-2 focus:ring-brand-blue-500"
               >
                 <option value="all">All Statuses</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="in_queue">In OPD Queue</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
+                {activeTab === 'scheduled' && (
+                  <>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="confirmed">Confirmed</option>
+                  </>
+                )}
+                {activeTab === 'completed' && (
+                  <option value="completed">Completed</option>
+                )}
+                {activeTab === 'cancelled' && (
+                  <>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="no_show">No-Show</option>
+                  </>
+                )}
               </select>
             </div>
           </div>

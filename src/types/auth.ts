@@ -1,4 +1,8 @@
+import { Timestamp } from 'firebase/firestore';
+
 export type PortalType = 'hospital' | 'laboratory' | 'pharmacy' | 'admin';
+
+export type UserRole = 'PATIENT' | 'DOCTOR' | 'LAB_TECH' | 'PHARMACIST' | 'STATE_ADMIN';
 
 export interface PortalConfig {
   id: PortalType;
@@ -24,15 +28,20 @@ export interface LoginCredentials {
 
 export interface UserProfile {
   id: string;
+  uid?: string;
   name: string;
+  displayName?: string;
   email: string;
-  role: PortalType;
-  roleTitle: string;
+  role: PortalType | UserRole;
+  systemRole?: UserRole;
+  roleTitle?: string;
+  facilityId?: string;
   facilityCode: string;
-  facilityName: string;
-  district: string;
-  state: string;
-  permissions: string[];
+  facilityName?: string;
+  district?: string;
+  state?: string;
+  active?: boolean;
+  permissions?: string[];
   lastLoginAt: string;
 }
 
@@ -60,4 +69,21 @@ export interface LoginAuditLog {
   status: 'SUCCESS' | 'FAILED' | 'EXPIRED';
   ipAddress?: string;
   facilityCode: string;
+}
+
+export interface FirestoreUserDocument {
+  id: string;
+  email: string;
+  displayName: string;
+  phone?: string;
+  role: UserRole | string;
+  facilityId?: string;
+  facilityCode?: string;
+  facilityName?: string;
+  district?: string;
+  department?: string;
+  active?: boolean;
+  isActive?: boolean;
+  createdAt?: Timestamp | any;
+  updatedAt?: Timestamp | any;
 }

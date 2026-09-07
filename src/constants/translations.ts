@@ -18,7 +18,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     benefit3: 'Real-time essential medicine availability tracking',
     benefit4: 'Direct public health coordination & analytics',
 
-    portalHospitalTitle: 'Hospital / Doctor',
+    portalHospitalTitle: 'Apollo Hospital',
     portalHospitalDesc: 'Manage appointments, consultations, records and referrals.',
     portalLabTitle: 'Diagnostic Lab',
     portalLabDesc: 'Manage test orders, samples and verified reports.',
@@ -205,7 +205,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     benefit3: 'रिअल-टाइम आवश्यक औषध उपलब्धतेचा मागोवा',
     benefit4: 'थेट सार्वजनिक आरोग्य समन्वय आणि विश्लेषण',
 
-    portalHospitalTitle: 'रुग्णालय / डॉक्टर',
+    portalHospitalTitle: 'Apollo Hospital',
     portalHospitalDesc: 'अपॉइंटमेंट, तपासणी, वैद्यकीय नोंदी आणि संदर्भ व्यवस्थापित करा.',
     portalLabTitle: 'निदान प्रयोगशाळा (लॅब)',
     portalLabDesc: 'चाचणी ऑर्डर्स, नमुने आणि प्रमाणित अहवाल व्यवस्थापित करा.',
@@ -392,7 +392,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     benefit3: 'वास्तविक समय में आवश्यक दवाओं की उपलब्धता',
     benefit4: 'प्रत्यक्ष सार्वजनिक स्वास्थ्य समन्वय और विश्लेषण',
 
-    portalHospitalTitle: 'अस्पताल / डॉक्टर',
+    portalHospitalTitle: 'Apollo Hospital',
     portalHospitalDesc: 'अपॉइंटमेंट, परामर्श, रिकॉर्ड और रेफरल प्रबंधित करें।',
     portalLabTitle: 'डायग्नोस्टिक लैब',
     portalLabDesc: 'जांच ऑर्डर, सैंपल और सत्यापित रिपोर्ट प्रबंधित करें।',
