@@ -93,7 +93,7 @@ export const AdminAccessAuditPage: React.FC = () => {
   return (
     <AdminPortalLayout
       pageTitle="Access & Audit"
-      pageSubtitle="Admin user management and full audit trail — Prototype Data"
+      pageSubtitle="Admin user management and full audit trail"
       headerAction={
         <button type="button" onClick={() => setShowNewUserHint(true)}
           className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-xl transition-colors shadow-sm">
@@ -123,7 +123,7 @@ export const AdminAccessAuditPage: React.FC = () => {
         <div className="flex items-start gap-3 p-4 mb-4 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 rounded-xl text-xs text-blue-800 dark:text-blue-300">
           <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="font-semibold">Add New Admin User (Prototype)</p>
+            <p className="font-semibold">Add New Admin User</p>
             <p className="mt-0.5">In the production system, this opens a user creation form for setting name, email, role, district scope, and access permissions. Audit log is automatically generated on user creation.</p>
           </div>
           <button type="button" onClick={() => setShowNewUserHint(false)}>

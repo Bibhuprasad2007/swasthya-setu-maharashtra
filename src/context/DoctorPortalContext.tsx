@@ -14,18 +14,6 @@ import {
   PriorityLevel,
   AppointmentStatus
 } from '../types/doctor';
-import {
-  INITIAL_PATIENTS,
-  INITIAL_APPOINTMENTS,
-  INITIAL_QUEUE,
-  INITIAL_CONSULTATIONS,
-  INITIAL_PRESCRIPTIONS,
-  INITIAL_LAB_ORDERS,
-  INITIAL_REFERRALS,
-  INITIAL_TELECONSULTATIONS,
-  INITIAL_FOLLOW_UPS,
-  INITIAL_FACILITY_CAPACITY
-} from '../data/doctorMockData';
 import { firebaseDataService } from '../services/firebaseDataService';
 
 interface ComputedStats {
@@ -122,7 +110,6 @@ interface DoctorPortalContextType {
   completeFollowUp: (followUpId: string, notes?: string) => void;
   rescheduleFollowUp: (followUpId: string, newDate: string) => void;
   updateFollowUpStatus: (followUpId: string, status: 'completed' | 'rescheduled' | 'pending' | 'overdue', newDate?: string) => void;
-  sendDemoReminder: (followUpId: string) => void;
   sendReminder: (followUpId: string) => void;
 
   // Aliases for convenience
@@ -144,17 +131,45 @@ interface DoctorPortalContextType {
 const DoctorPortalContext = createContext<DoctorPortalContextType | undefined>(undefined);
 
 export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Central State Initialized with rich synthetic Maharashtra data
-  const [patients, setPatients] = useState<PatientRecord[]>(() => INITIAL_PATIENTS);
-  const [appointments, setAppointments] = useState<AppointmentItem[]>(() => INITIAL_APPOINTMENTS);
-  const [queue, setQueue] = useState<QueuePatientItem[]>(() => INITIAL_QUEUE);
-  const [consultations, setConsultations] = useState<ConsultationRecord[]>(() => INITIAL_CONSULTATIONS);
-  const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>(() => INITIAL_PRESCRIPTIONS);
-  const [labOrders, setLabOrders] = useState<LabOrderItem[]>(() => INITIAL_LAB_ORDERS);
-  const [referrals, setReferrals] = useState<ReferralItem[]>(() => INITIAL_REFERRALS);
-  const [teleconsultations, setTeleconsultations] = useState<TeleconsultSession[]>(() => INITIAL_TELECONSULTATIONS);
-  const [followUps, setFollowUps] = useState<FollowUpItem[]>(() => INITIAL_FOLLOW_UPS);
-  const [facilityCapacity, setFacilityCapacity] = useState<FacilityCapacity>(() => INITIAL_FACILITY_CAPACITY);
+  // Central State Initialized as empty for Firebase migration
+  const [patients, setPatients] = useState<PatientRecord[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
+  const [queue, setQueue] = useState<QueuePatientItem[]>([]);
+  const [consultations, setConsultations] = useState<ConsultationRecord[]>([]);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionRecord[]>([]);
+  const [labOrders, setLabOrders] = useState<LabOrderItem[]>([]);
+  const [referrals, setReferrals] = useState<ReferralItem[]>([]);
+  const [teleconsultations, setTeleconsultations] = useState<TeleconsultSession[]>([]);
+  const [followUps, setFollowUps] = useState<FollowUpItem[]>([]);
+  const [facilityCapacity, setFacilityCapacity] = useState<FacilityCapacity>({
+    facilityName: '',
+    facilityCode: '',
+    district: '',
+    staff: {
+      doctorsOnDuty: 0,
+      nursesAvailable: 0,
+      specialistsAvailable: 0,
+      currentWorkload: 'Low',
+      shiftStatus: ''
+    },
+    services: {
+      opd: 'Operational',
+      emergency: 'Operational',
+      teleconsultation: 'Online',
+      laboratory: 'Processing',
+      pharmacy: 'Dispensing'
+    },
+    infrastructure: {
+      totalBeds: 0,
+      availableBeds: 0,
+      ambulancesAvailable: 0,
+      oxygenCylinders: 0,
+      powerBackup: 'Active (Main Grid)',
+      internetConnectivity: 'High Speed Fiber (ABDM Connected)'
+    },
+    equipment: [],
+    lastUpdated: 'Not available'
+  });
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Firebase Real-time Synchronization for Patients
@@ -224,11 +239,11 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const avgWait = waitingInQueue.length > 0 ? Math.round(totalWaitingMins / waitingInQueue.length) : 14;
 
     return {
-      todayAppointmentsCount: todayAppts.length > 0 ? todayAppts.length : 24,
-      completedAppointmentsCount: completedAppts.length > 0 ? completedAppts.length : 6,
+      todayAppointmentsCount: todayAppts.length,
+      completedAppointmentsCount: completedAppts.length,
       waitingPatientsCount: waitingInQueue.length,
       priorityCasesCount: priorityInQueue.length,
-      completedConsultationsCount: completedCons.length > 0 ? completedCons.length : 6,
+      completedConsultationsCount: completedCons.length,
       pendingLabReportsCount: pendingLabs.length,
       pendingReferralsCount: pendingRefs.length,
       dueFollowUpsCount: dueFups.length,
@@ -895,7 +910,7 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
   }, [addToast]);
 
-  const sendDemoReminder = useCallback((followUpId: string) => {
+  const sendReminder = useCallback((followUpId: string) => {
     const fup = followUps.find((f) => f.id === followUpId);
     if (!fup) return;
 
@@ -1013,8 +1028,7 @@ export const DoctorPortalProvider: React.FC<{ children: React.ReactNode }> = ({ 
     completeFollowUp,
     rescheduleFollowUp,
     updateFollowUpStatus,
-    sendDemoReminder,
-    sendReminder: sendDemoReminder,
+    sendReminder,
     updateFacilityCapacity,
     addToast,
     removeToast

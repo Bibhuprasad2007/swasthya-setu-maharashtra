@@ -3,21 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   Building2, Wifi, WifiOff, Users, Clock, FlaskConical,
   Pill, GitBranch, AlertTriangle, CheckCircle2, RefreshCw,
-  TrendingUp, Activity, Info,
+  TrendingUp, Activity,
 } from 'lucide-react';
 import { AdminPortalLayout } from '../../components/layouts/AdminPortalLayout';
 import { useAdminPortal } from '../../context/AdminPortalContext';
 import { AdminKpiCard } from '../../components/admin/AdminKpiCard';
-import { MiniBarChart } from '../../components/admin/MiniBarChart';
-import { HorizontalBarChart } from '../../components/admin/HorizontalBarChart';
 import { AlertSeverityBadge, AlertStatusBadge } from '../../components/admin/AdminBadges';
-import {
-  CHART_CONSULTATIONS_7DAY,
-  CHART_LAB_ORDERS_7DAY,
-  CHART_WAITING_BY_DISTRICT,
-  CHART_REFERRAL_COMPLETION,
-  CHART_MEDICINE_FULFILMENT,
-} from '../../data/adminMockData';
 
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -38,7 +29,7 @@ export const AdminDashboardPage: React.FC = () => {
   return (
     <AdminPortalLayout
       pageTitle="Command-Centre Dashboard"
-      pageSubtitle="Statewide operational health network overview — Prototype Data"
+      pageSubtitle="Statewide operational health network overview"
       headerAction={
         <span className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-brand-dark-muted">
           <RefreshCw className="w-3 h-3" />
@@ -46,11 +37,6 @@ export const AdminDashboardPage: React.FC = () => {
         </span>
       }
     >
-      {/* Prototype Notice */}
-      <div className="flex items-center gap-2 p-3 mb-5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300">
-        <Info className="w-4 h-4 flex-shrink-0" />
-        <span><strong>Prototype Data:</strong> All values shown are fictional demonstration data. Not connected to any real government system.</span>
-      </div>
 
       {/* Primary KPI Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-6">
@@ -111,9 +97,9 @@ export const AdminDashboardPage: React.FC = () => {
               <p className="text-[11px] text-slate-500 dark:text-brand-dark-muted">Appointments vs. completed</p>
             </div>
           </div>
-          <MiniBarChart data={CHART_CONSULTATIONS_7DAY} height={150}
-            primaryColor="#3b82f6" secondaryColor="#94a3b8"
-            showLegend primaryLabel="Scheduled" secondaryLabel="Completed" />
+          <div className="flex items-center justify-center h-[150px] text-xs text-slate-400 dark:text-brand-dark-muted border border-dashed border-slate-200 dark:border-brand-dark-border rounded-xl">
+            No consultation data available
+          </div>
         </div>
 
         {/* Lab Orders Chart */}
@@ -124,25 +110,27 @@ export const AdminDashboardPage: React.FC = () => {
               <p className="text-[11px] text-slate-500 dark:text-brand-dark-muted">Orders received vs. completed</p>
             </div>
           </div>
-          <MiniBarChart data={CHART_LAB_ORDERS_7DAY} height={150}
-            primaryColor="#14b8a6" secondaryColor="#94a3b8"
-            showLegend primaryLabel="Received" secondaryLabel="Completed" />
+          <div className="flex items-center justify-center h-[150px] text-xs text-slate-400 dark:text-brand-dark-muted border border-dashed border-slate-200 dark:border-brand-dark-border rounded-xl">
+            No lab order data available
+          </div>
         </div>
 
         {/* Avg Waiting by District */}
         <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200 dark:border-brand-dark-border p-4 shadow-xs">
           <h3 className="text-sm font-bold text-slate-800 dark:text-brand-dark-heading mb-1">Avg. Waiting Time by District</h3>
           <p className="text-[11px] text-slate-500 dark:text-brand-dark-muted mb-3">Minutes — Lower is better</p>
-          <HorizontalBarChart data={CHART_WAITING_BY_DISTRICT} color="#8b5cf6"
-            unit=" min" higherIsBetter={false} maxValue={70} />
+          <div className="flex items-center justify-center h-[150px] text-xs text-slate-400 dark:text-brand-dark-muted border border-dashed border-slate-200 dark:border-brand-dark-border rounded-xl">
+            No waiting time data available
+          </div>
         </div>
 
         {/* Referral Completion Rate */}
         <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200 dark:border-brand-dark-border p-4 shadow-xs">
           <h3 className="text-sm font-bold text-slate-800 dark:text-brand-dark-heading mb-1">Referral Completion Rate by District</h3>
           <p className="text-[11px] text-slate-500 dark:text-brand-dark-muted mb-3">Percentage — Higher is better</p>
-          <HorizontalBarChart data={CHART_REFERRAL_COMPLETION} color="#10b981"
-            unit="%" higherIsBetter maxValue={100} />
+          <div className="flex items-center justify-center h-[150px] text-xs text-slate-400 dark:text-brand-dark-muted border border-dashed border-slate-200 dark:border-brand-dark-border rounded-xl">
+            No referral completion data available
+          </div>
         </div>
       </div>
 
@@ -244,8 +232,9 @@ export const AdminDashboardPage: React.FC = () => {
       <div className="mt-4 bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200 dark:border-brand-dark-border p-4 shadow-xs">
         <h3 className="text-sm font-bold text-slate-800 dark:text-brand-dark-heading mb-1">Medicine Prescription Fulfilment by District</h3>
         <p className="text-[11px] text-slate-500 dark:text-brand-dark-muted mb-3">Percentage fulfilled — Higher is better</p>
-        <HorizontalBarChart data={CHART_MEDICINE_FULFILMENT} color="#f59e0b"
-          unit="%" higherIsBetter maxValue={100} />
+          <div className="flex items-center justify-center h-[150px] text-xs text-slate-400 dark:text-brand-dark-muted border border-dashed border-slate-200 dark:border-brand-dark-border rounded-xl">
+            No medicine fulfilment data available
+          </div>
       </div>
     </AdminPortalLayout>
   );

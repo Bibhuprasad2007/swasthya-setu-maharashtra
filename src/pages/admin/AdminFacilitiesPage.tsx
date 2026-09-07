@@ -6,8 +6,6 @@ import { FacilityDetailDrawer } from '../../components/admin/FacilityDetailDrawe
 import { OperationalStatusBadge, ConnectivityStatusBadge } from '../../components/admin/AdminBadges';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Facility, FacilityType, OperationalStatus, ConnectivityStatus } from '../../types/admin';
-import { MAHARASHTRA_DISTRICTS } from '../../data/adminMockData';
-
 const FACILITY_TYPE_OPTIONS: { value: FacilityType | 'all'; label: string }[] = [
   { value: 'all', label: 'All Facility Types' },
   { value: 'sub_centre', label: 'Sub-Centre' },
@@ -93,7 +91,7 @@ export const AdminFacilitiesPage: React.FC = () => {
   return (
     <AdminPortalLayout
       pageTitle="Facility Network"
-      pageSubtitle="Directory of all registered healthcare facilities — Prototype Data"
+      pageSubtitle="Directory of all registered healthcare facilities"
       headerAction={
         <span className="text-xs font-semibold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 px-3 py-1.5 rounded-xl border border-sky-200 dark:border-sky-800/60">
           {filtered.length} of {facilities.length} facilities
@@ -116,7 +114,7 @@ export const AdminFacilitiesPage: React.FC = () => {
             )}
           </div>
           <SelectFilter value={districtFilter} onChange={setDistrictFilter} label="District filter"
-            options={[{ value: 'all', label: 'All Districts' }, ...MAHARASHTRA_DISTRICTS.map(d => ({ value: d, label: d }))]} />
+            options={[{ value: 'all', label: 'All Districts' }, ...[].map(d => ({ value: d, label: d }))]} />
           <SelectFilter value={typeFilter} onChange={v => setTypeFilter(v as FacilityType | 'all')} label="Type filter" options={FACILITY_TYPE_OPTIONS} />
           <SelectFilter value={opFilter} onChange={v => setOpFilter(v as OperationalStatus | 'all')} label="Status filter" options={OP_STATUS_OPTIONS} />
           <SelectFilter value={connFilter} onChange={v => setConnFilter(v as ConnectivityStatus | 'all')} label="Connectivity filter" options={CONN_STATUS_OPTIONS} />

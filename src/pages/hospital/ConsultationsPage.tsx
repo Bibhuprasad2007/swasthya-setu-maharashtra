@@ -45,61 +45,34 @@ export const ConsultationsPage: React.FC = () => {
   );
 
   // Clinical Workspace Form State
-  const [chiefComplaint, setChiefComplaint] = useState('Fever with chills and body weakness');
-  const [symptomsText, setSymptomsText] = useState('High-grade fever, headache, loss of appetite, fatigue');
-  const [duration, setDuration] = useState('3 days');
-  const [severity, setSeverity] = useState<'mild' | 'moderate' | 'severe'>('moderate');
-  const [patientNotes, setPatientNotes] = useState('Took OTC Paracetamol with temporary relief.');
+  const [chiefComplaint, setChiefComplaint] = useState('');
+  const [symptomsText, setSymptomsText] = useState('');
+  const [duration, setDuration] = useState('');
+  const [severity, setSeverity] = useState<'mild' | 'moderate' | 'severe'>('mild');
+  const [patientNotes, setPatientNotes] = useState('');
 
   // Vitals State
   const [vitals, setVitals] = useState<VitalsData>({
-    temperature: '101.4',
-    bpSys: '130',
-    bpDia: '85',
-    pulse: '84',
-    spo2: '98',
-    respiratoryRate: '18',
-    height: '160',
-    weight: '62',
-    bloodSugar: '142'
+    temperature: '',
+    bpSys: '',
+    bpDia: '',
+    pulse: '',
+    spo2: '',
+    respiratoryRate: '',
+    height: '',
+    weight: '',
+    bloodSugar: ''
   });
 
   // Clinical Notes & Diagnosis
-  const [examinationNotes, setExaminationNotes] = useState('Chest clear on auscultation. Throat congested. Abdomen soft, no organomegaly.');
-  const [provisionalDiagnosis, setProvisionalDiagnosis] = useState('Acute Febrile Illness (Suspected Enteric / Viral Fever)');
-  const [finalDiagnosis, setFinalDiagnosis] = useState('Acute Febrile Illness with Glycemic Fluctuations');
-  const [clinicalAdvice, setClinicalAdvice] = useState('Hydration therapy (ORS / clean boiled water). Soft diet. Rest for 3 days. Return immediately if temperature > 103°F or severe vomiting.');
-  const [privateNotes, setPrivateNotes] = useState('Monitor Widal & TLC in 48 hours.');
+  const [examinationNotes, setExaminationNotes] = useState('');
+  const [provisionalDiagnosis, setProvisionalDiagnosis] = useState('');
+  const [finalDiagnosis, setFinalDiagnosis] = useState('');
+  const [clinicalAdvice, setClinicalAdvice] = useState('');
+  const [privateNotes, setPrivateNotes] = useState('');
 
   // Linked Prescriptions inside this consultation
-  const [prescribedMedicines, setPrescribedMedicines] = useState<PrescriptionMedicine[]>([
-    {
-      id: 'med-new-1',
-      medicineName: 'Paracetamol Tablets IP',
-      genericName: 'Paracetamol',
-      strength: '650 mg',
-      dosage: '1 tablet',
-      frequency: 'Three times daily (1-1-1)',
-      route: 'Oral',
-      duration: '5 days',
-      quantity: 15,
-      timing: 'after_food',
-      instructions: 'Take after meals for fever relief.'
-    },
-    {
-      id: 'med-new-2',
-      medicineName: 'Cefixime Tablets IP',
-      genericName: 'Cefixime',
-      strength: '200 mg',
-      dosage: '1 tablet',
-      frequency: 'Twice daily (1-0-1)',
-      route: 'Oral',
-      duration: '5 days',
-      quantity: 10,
-      timing: 'after_food',
-      instructions: 'Complete full course even if fever settles.'
-    }
-  ]);
+  const [prescribedMedicines, setPrescribedMedicines] = useState<PrescriptionMedicine[]>([]);
 
   // Linked Lab Orders inside consultation
   const [includeLabOrder, setIncludeLabOrder] = useState(true);

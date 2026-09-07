@@ -1,8 +1,8 @@
 /**
  * Pharmacy Portal Service Layer
  * SwasthyaSetu Maharashtra - Integrated Rural Healthcare Network
- * 
- * Provides decoupled service functions that can operate on centralized mock state
+ *
+ * Provides decoupled service functions that can operate on centralized state
  * or easily connect to production backend REST APIs (e.g. GET /api/pharmacy/inventory).
  */
 
@@ -17,9 +17,6 @@ import {
   PharmacyDashboardStats,
   DispensedMedicineItem
 } from '../types/pharmacy';
-
-// Check if we should use live backend or internal state management
-export const USE_MOCK_PHARMACY = true;
 
 /**
  * Audit Logging Service
@@ -203,8 +200,8 @@ export const pharmacyService = {
     const partialRate = totalDispensed > 0 ? Math.round((partialDispensed / totalDispensed) * 100) : 0;
 
     return {
-      facilityCode: 'MH-PHA-101',
-      district: 'Nashik',
+      facilityCode: 'PENDING',
+      district: 'PENDING',
       totalActivePrescriptions: prescriptions.filter((p) => p.status === 'finalized').length,
       lowStockMedicinesCount: batches.filter((b) => b.status === 'low_stock').length,
       outOfStockCount: batches.filter((b) => b.status === 'out_of_stock').length,

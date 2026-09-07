@@ -55,11 +55,9 @@ export interface TranslationDictionary {
   sessionExpired: string;
   networkError: string;
 
-  // Quick Demo / Prototype
-  demoAccountsTitle: string;
-  demoClickToFill: string;
-  demoPrototypeNotice: string;
-  
+  // Account Management
+  prototypeNotice: string;
+
   // Dashboards Generic
   dashboardPlaceholderNotice: string;
   welcomeBack: string;

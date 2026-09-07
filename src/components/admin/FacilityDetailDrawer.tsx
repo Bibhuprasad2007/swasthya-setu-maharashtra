@@ -6,7 +6,6 @@ import React, { useState } from 'react';
 import { X, Building2, Phone, User, Clock, Wifi, CheckCircle2, XCircle } from 'lucide-react';
 import { Facility } from '../../types/admin';
 import { OperationalStatusBadge, ConnectivityStatusBadge } from './AdminBadges';
-import { MOCK_FACILITY_PERFORMANCE } from '../../data/adminMockData';
 
 type Tab = 'overview' | 'capacity' | 'performance' | 'alerts';
 
@@ -35,7 +34,7 @@ export const FacilityDetailDrawer: React.FC<FacilityDetailDrawerProps> = ({
 
   if (!facility) return null;
 
-  const perf = MOCK_FACILITY_PERFORMANCE.find(p => p.facilityId === facility.id);
+  const perf: any = null;
 
   const ServiceRow = ({ label, available }: { label: string; available: boolean }) => (
     <div className="flex items-center justify-between py-1.5 border-b border-slate-100 dark:border-brand-dark-border last:border-0">

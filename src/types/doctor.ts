@@ -161,7 +161,6 @@ export interface LabOrderItem {
   doctorInterpretation?: string;
   reviewedDate?: string;
   reportResults?: LabResultEntry[];
-  demoPdfFileName?: string;
 }
 
 export interface ReferralItem {
@@ -357,4 +356,3 @@ export interface UpcomingAppointmentItem {
   reason?: string;
   status: string;
 }
-

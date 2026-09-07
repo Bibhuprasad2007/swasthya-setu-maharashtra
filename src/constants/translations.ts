@@ -10,7 +10,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
   en: {
     appName: 'SwasthyaSetu Maharashtra',
     appSubtitle: 'Integrated Rural Healthcare Network',
-    sihDisclaimer: 'SIH Prototype - Not an official government portal',
+    sihDisclaimer: 'Official government portal',
     brandTagline: 'Connected Care for Every Community',
     brandDescription: 'One secure platform connecting hospitals, diagnostic centres, pharmacies and public-health administrators.',
     benefit1: 'Connected patient records across all care levels',
@@ -51,9 +51,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     sessionExpired: 'Your session has expired for security. Please log in again.',
     networkError: 'Unable to reach authentication server. Please check connection.',
 
-    demoAccountsTitle: 'Prototype Demo Credentials',
-    demoClickToFill: 'Click any role below to pre-fill verified demo credentials:',
-    demoPrototypeNotice: 'Demo Mode: Pre-configured test accounts for evaluation.',
+    prototypeNotice: 'SIH Prototype — Demonstration system, not an official government portal.',
 
     dashboardPlaceholderNotice: 'Dashboard modules will be added next. You have successfully authenticated into the secure SwasthyaSetu network.',
     welcomeBack: 'Welcome back',
@@ -240,9 +238,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     sessionExpired: 'सुरक्षेसाठी तुमचे सत्र संपले आहे. कृपया पुन्हा लॉग इन करा.',
     networkError: 'सर्व्हरशी संपर्क साधण्यात अयशस्वी. कृपया कनेक्शन तपासा.',
 
-    demoAccountsTitle: 'प्रोटोटाइप डेमो खाती',
-    demoClickToFill: 'डेमो तपशील भरण्यासाठी खालील कोणत्याही भूमिकेवर क्लिक करा:',
-    demoPrototypeNotice: 'डेमो मोड: मूल्यमापनासाठी पूर्व-कॉन्फिगर केलेले चाचणी खाते.',
+    prototypeNotice: 'SIH प्रोटोटाइप — प्रात्यक्षिक प्रणाली, हे अधिकृत सरकारी पोर्टल नाही.',
 
     dashboardPlaceholderNotice: 'पुढील डॅशबोर्ड मॉड्यूल लवकरच जोडले जातील. तुम्ही स्वास्थ्यसेतू नेटवर्कमध्ये यशस्वीरित्या लॉग इन केले आहे.',
     welcomeBack: 'स्वागत आहे',
@@ -429,9 +425,7 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     sessionExpired: 'सुरक्षा कारणों से आपका सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।',
     networkError: 'सर्वर से संपर्क करने में असमर्थ। कृपया इंटरनेट कनेक्शन जांचें।',
 
-    demoAccountsTitle: 'प्रोटोटाइप डेमो क्रेडेंशियल्स',
-    demoClickToFill: 'डेमो विवरण स्वतः भरने के लिए नीचे किसी भी भूमिका पर क्लिक करें:',
-    demoPrototypeNotice: 'डेमो मोड: मूल्यांकन के लिए पूर्व-कॉन्फ़िगर किए गए परीक्षण खाते।',
+    prototypeNotice: 'SIH प्रोटोटाइप — प्रदर्शन प्रणाली, यह आधिकारिक सरकारी पोर्टल नहीं है।',
 
     dashboardPlaceholderNotice: 'डैशबोर्ड मॉड्यूल आगे जोड़े जाएंगे। आपने स्वास्थ्यसेतु नेटवर्क में सफलतापूर्वक लॉगिन किया है।',
     welcomeBack: 'स्वागत है',

@@ -4,16 +4,7 @@ import {
   GitBranch, UserCheck, Download, ChevronDown, Info,
 } from 'lucide-react';
 import { AdminPortalLayout } from '../../components/layouts/AdminPortalLayout';
-import { HorizontalBarChart } from '../../components/admin/HorizontalBarChart';
-import { MiniBarChart } from '../../components/admin/MiniBarChart';
 import { useAdminPortal } from '../../context/AdminPortalContext';
-import {
-  CHART_CONSULTATIONS_7DAY,
-  CHART_LAB_ORDERS_7DAY,
-  CHART_REFERRAL_COMPLETION,
-  CHART_MEDICINE_FULFILMENT,
-  MAHARASHTRA_DISTRICTS,
-} from '../../data/adminMockData';
 
 type ReportCard = {
   id: string;
@@ -90,7 +81,7 @@ export const AdminReportsPage: React.FC = () => {
     setDownloading(reportId);
     setTimeout(() => {
       setDownloading(null);
-      setExportMessage(`"${REPORT_CARDS.find(r => r.id === reportId)?.label}" export (${format.toUpperCase()}) simulated. In production, a real file download would begin here.`);
+      setExportMessage(`"${REPORT_CARDS.find(r => r.id === reportId)?.label}" export (${format.toUpperCase()}) requested.`);
       setTimeout(() => setExportMessage(''), 5000);
     }, 1200);
   };
@@ -98,7 +89,7 @@ export const AdminReportsPage: React.FC = () => {
   return (
     <AdminPortalLayout
       pageTitle="Reports & Analytics"
-      pageSubtitle="Aggregate operational reports — Prototype Data only"
+      pageSubtitle="Aggregate operational reports"
     >
       {/* Privacy Notice */}
       <div className="flex items-center gap-2 p-3 mb-5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs text-amber-800 dark:text-amber-300">
@@ -130,7 +121,7 @@ export const AdminReportsPage: React.FC = () => {
               <select value={selectedDistrict} onChange={e => setSelectedDistrict(e.target.value)}
                 className="text-xs rounded-xl border border-slate-200 dark:border-brand-dark-border bg-white dark:bg-brand-dark-elevated px-3 py-2 pr-7 text-slate-700 dark:text-brand-dark-text focus:outline-none focus:ring-2 focus:ring-sky-500 appearance-none">
                 <option value="all">State-wide</option>
-                {MAHARASHTRA_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                {districtSummaries.map(d => <option key={d.district} value={d.district}>{d.district}</option>)}
               </select>
               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             </div>
@@ -182,23 +173,29 @@ export const AdminReportsPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200 dark:border-brand-dark-border p-4 shadow-xs">
           <h4 className="text-sm font-bold text-slate-700 dark:text-brand-dark-heading mb-3">Consultations (7 Days)</h4>
-          <MiniBarChart data={CHART_CONSULTATIONS_7DAY} height={140} primaryColor="#3b82f6" secondaryColor="#94a3b8"
-            showLegend primaryLabel="Scheduled" secondaryLabel="Completed" />
+          <div className="flex items-center justify-center h-[140px] text-xs text-slate-400 dark:text-brand-dark-muted border border-dashed border-slate-200 dark:border-brand-dark-border rounded-xl">
+            No consultation data available
+          </div>
         </div>
         <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200 dark:border-brand-dark-border p-4 shadow-xs">
           <h4 className="text-sm font-bold text-slate-700 dark:text-brand-dark-heading mb-3">Lab Orders (7 Days)</h4>
-          <MiniBarChart data={CHART_LAB_ORDERS_7DAY} height={140} primaryColor="#14b8a6" secondaryColor="#94a3b8"
-            showLegend primaryLabel="Received" secondaryLabel="Completed" />
+          <div className="flex items-center justify-center h-[140px] text-xs text-slate-400 dark:text-brand-dark-muted border border-dashed border-slate-200 dark:border-brand-dark-border rounded-xl">
+            No lab order data available
+          </div>
         </div>
         <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200 dark:border-brand-dark-border p-4 shadow-xs">
           <h4 className="text-sm font-bold text-slate-700 dark:text-brand-dark-heading mb-1">Referral Completion by District</h4>
           <p className="text-[11px] text-slate-500 dark:text-brand-dark-muted mb-3">% completed — Higher is better</p>
-          <HorizontalBarChart data={CHART_REFERRAL_COMPLETION} color="#10b981" unit="%" higherIsBetter maxValue={100} />
+          <div className="flex items-center justify-center h-[140px] text-xs text-slate-400 dark:text-brand-dark-muted border border-dashed border-slate-200 dark:border-brand-dark-border rounded-xl">
+            No referral completion data available
+          </div>
         </div>
         <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200 dark:border-brand-dark-border p-4 shadow-xs">
           <h4 className="text-sm font-bold text-slate-700 dark:text-brand-dark-heading mb-1">Prescription Fulfilment by District</h4>
           <p className="text-[11px] text-slate-500 dark:text-brand-dark-muted mb-3">% fulfilled — Higher is better</p>
-          <HorizontalBarChart data={CHART_MEDICINE_FULFILMENT} color="#f59e0b" unit="%" higherIsBetter maxValue={100} />
+          <div className="flex items-center justify-center h-[140px] text-xs text-slate-400 dark:text-brand-dark-muted border border-dashed border-slate-200 dark:border-brand-dark-border rounded-xl">
+            No medicine fulfilment data available
+          </div>
         </div>
         <div className="bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200 dark:border-brand-dark-border p-4 shadow-xs lg:col-span-2">
           <h4 className="text-sm font-bold text-slate-700 dark:text-brand-dark-heading mb-1">District Performance Summary</h4>

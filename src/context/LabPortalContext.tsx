@@ -16,14 +16,6 @@ import {
   canTransition,
   LabOrderTimelineEntry,
 } from '../types/lab';
-import {
-  INITIAL_LAB_ORDERS,
-  INITIAL_SAMPLES,
-  INITIAL_TEST_RESULTS,
-  INITIAL_VERIFIED_REPORTS,
-  INITIAL_LAB_ACTIVITY,
-  INITIAL_LAB_NOTIFICATIONS,
-} from '../data/labMockData';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -38,12 +30,12 @@ interface LabPortalState {
 }
 
 const initialState: LabPortalState = {
-  orders: INITIAL_LAB_ORDERS,
-  samples: INITIAL_SAMPLES,
-  testResults: INITIAL_TEST_RESULTS,
-  verifiedReports: INITIAL_VERIFIED_REPORTS,
-  activity: INITIAL_LAB_ACTIVITY,
-  notifications: INITIAL_LAB_NOTIFICATIONS,
+  orders: [],
+  samples: [],
+  testResults: [],
+  verifiedReports: [],
+  activity: [],
+  notifications: [],
   toasts: [],
 };
 

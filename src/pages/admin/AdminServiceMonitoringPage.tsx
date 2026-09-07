@@ -36,7 +36,7 @@ export const AdminServiceMonitoringPage: React.FC = () => {
   return (
     <AdminPortalLayout
       pageTitle="Service Monitoring"
-      pageSubtitle="Unified operational snapshot from all portals — Prototype Data"
+      pageSubtitle="Unified operational snapshot from all portals"
     >
       <div className="flex items-center gap-1 flex-wrap mb-4 bg-white dark:bg-brand-dark-surface rounded-2xl border border-slate-200 dark:border-brand-dark-border p-1.5 shadow-xs">
         {tabs.map(t => (

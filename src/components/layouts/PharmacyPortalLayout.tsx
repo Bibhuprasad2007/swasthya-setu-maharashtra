@@ -16,7 +16,6 @@ import { usePharmacyPortal } from '../../context/PharmacyPortalContext';
 import { PharmacySidebar } from '../pharmacy/PharmacySidebar';
 import { LanguageSelector } from '../common/LanguageSelector';
 import { ThemeToggle } from '../common/ThemeToggle';
-import { PrototypeBanner } from '../common/PrototypeBanner';
 import { ToastContainer } from '../common/ToastContainer';
 
 const PAGE_LABELS: Record<string, string> = {
@@ -57,7 +56,6 @@ export const PharmacyPortalLayout: React.FC<PharmacyPortalLayoutProps> = ({
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-brand-dark-bg text-slate-900 dark:text-brand-dark-text transition-colors duration-200">
-      <PrototypeBanner />
 
       {/* Session Timeout Warning */}
       {sessionTimeoutWarning && (
@@ -205,8 +203,7 @@ export const PharmacyPortalLayout: React.FC<PharmacyPortalLayoutProps> = ({
       <footer className="bg-white/80 dark:bg-brand-dark-surface/80 border-t border-slate-200 dark:border-brand-dark-border py-3.5 text-center text-xs text-slate-500 dark:text-brand-dark-muted mt-auto">
         <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            SwasthyaSetu Maharashtra — Government Medical Store & Jan Aushadhi Network (SIH Prototype)
-          </span>
+            SwasthyaSetu Maharashtra — Government Medical Store & Jan Aushadhi Network          </span>
           <span>
             Pharmacist: <strong>{user?.name}</strong> | Store: <strong>{user?.facilityCode}</strong>
           </span>

@@ -156,7 +156,7 @@ export const FacilityStatusPage: React.FC = () => {
       }
     >
       <div className="space-y-6">
-        {/* Prototype Header Pill & Last updated */}
+        {/* Header Pill & Last updated */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-slate-100/80 dark:bg-brand-dark-surface border border-slate-200 dark:border-brand-dark-border text-xs text-slate-600 dark:text-brand-dark-muted">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

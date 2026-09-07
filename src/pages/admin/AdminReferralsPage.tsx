@@ -11,7 +11,6 @@ import {
 } from '../../components/admin/AdminBadges';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ReferralOperationalSummary, ReferralOperationalStatus, ReferralUrgency } from '../../types/admin';
-import { MAHARASHTRA_DISTRICTS } from '../../data/adminMockData';
 
 const STATUS_OPTIONS: { value: ReferralOperationalStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'All Statuses' },
@@ -81,7 +80,7 @@ export const AdminReferralsPage: React.FC = () => {
   return (
     <AdminPortalLayout
       pageTitle="Referral Monitoring"
-      pageSubtitle="Operational coordination monitoring — Prototype Data. No patient identifiers are shown."
+      pageSubtitle="Operational coordination monitoring. No patient identifiers are shown."
       headerAction={
         delayed > 0 ? (
           <span className="flex items-center gap-1.5 text-xs font-bold text-white bg-rose-500 px-2.5 py-1 rounded-xl">
@@ -110,7 +109,7 @@ export const AdminReferralsPage: React.FC = () => {
           <SelectFilter value={statusFilter} onChange={v => setStatusFilter(v as ReferralOperationalStatus | 'all')} label="Status" options={STATUS_OPTIONS} />
           <SelectFilter value={urgencyFilter} onChange={v => setUrgencyFilter(v as ReferralUrgency | 'all')} label="Urgency" options={URGENCY_OPTIONS} />
           <SelectFilter value={districtFilter} onChange={setDistrictFilter} label="District"
-            options={[{ value: 'all', label: 'All Districts' }, ...MAHARASHTRA_DISTRICTS.map(d => ({ value: d, label: d }))]} />
+            options={[{ value: 'all', label: 'All Districts' }, ...[].map(d => ({ value: d, label: d }))]} />
           <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-brand-dark-muted cursor-pointer">
             <input type="checkbox" checked={showDelayedOnly} onChange={e => setShowDelayedOnly(e.target.checked)}
               className="w-3.5 h-3.5 rounded accent-rose-500" />

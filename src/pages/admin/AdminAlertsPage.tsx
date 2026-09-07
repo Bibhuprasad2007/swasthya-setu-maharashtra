@@ -8,7 +8,6 @@ import {
 } from '../../components/admin/AdminBadges';
 import { EmptyState } from '../../components/common/EmptyState';
 import { OperationalAlert, AlertCategory, AlertSeverity, AlertStatus } from '../../types/admin';
-import { MAHARASHTRA_DISTRICTS } from '../../data/adminMockData';
 
 const CATEGORY_OPTIONS: { value: AlertCategory | 'all'; label: string }[] = [
   { value: 'all', label: 'All Categories' },
@@ -115,7 +114,7 @@ export const AdminAlertsPage: React.FC = () => {
   return (
     <AdminPortalLayout
       pageTitle="Alerts & Shortages"
-      pageSubtitle="Operational alert management — Prototype Data"
+      pageSubtitle="Operational alert management"
       headerAction={
         <div className="flex items-center gap-2">
           {statusCounts.new > 0 && (
@@ -156,7 +155,7 @@ export const AdminAlertsPage: React.FC = () => {
           <SelectFilter value={sevFilter} onChange={v => setSevFilter(v as AlertSeverity | 'all')} label="Severity" options={SEV_OPTIONS} />
           <SelectFilter value={statusFilter} onChange={v => setStatusFilter(v as AlertStatus | 'all')} label="Status" options={STATUS_OPTIONS} />
           <SelectFilter value={districtFilter} onChange={setDistrictFilter} label="District"
-            options={[{ value: 'all', label: 'All Districts' }, ...MAHARASHTRA_DISTRICTS.map(d => ({ value: d, label: d }))]} />
+            options={[{ value: 'all', label: 'All Districts' }, ...[].map(d => ({ value: d, label: d }))]} />
           <div className="relative flex items-center gap-1.5 text-xs text-slate-500 dark:text-brand-dark-muted">
             <SlidersHorizontal className="w-3.5 h-3.5" />
             <select value={sortBy} onChange={e => setSortBy(e.target.value as SortType)}

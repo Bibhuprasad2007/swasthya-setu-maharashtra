@@ -16,16 +16,6 @@ import {
   AdminFilterState,
 } from '../types/admin';
 import {
-  MOCK_ALERTS,
-  MOCK_ADMIN_USERS,
-  MOCK_REFERRALS,
-  MOCK_AUDIT_EVENTS,
-  MOCK_FACILITIES,
-  MOCK_DISTRICT_SUMMARIES,
-  MOCK_DASHBOARD_SUMMARY,
-  MOCK_SERVICE_SNAPSHOT,
-} from '../data/adminMockData';
-import {
   adminAlertService,
   adminAccessService,
   referralMonitoringService,
@@ -94,10 +84,10 @@ const DEFAULT_FILTER: AdminFilterState = {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const AdminPortalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [alerts, setAlerts] = useState<OperationalAlert[]>([...MOCK_ALERTS]);
-  const [users, setUsers] = useState<AdminUser[]>([...MOCK_ADMIN_USERS]);
-  const [referrals, setReferrals] = useState<ReferralOperationalSummary[]>([...MOCK_REFERRALS]);
-  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([...MOCK_AUDIT_EVENTS]);
+  const [alerts, setAlerts] = useState<OperationalAlert[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [referrals, setReferrals] = useState<ReferralOperationalSummary[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [filter, setFilterState] = useState<AdminFilterState>(DEFAULT_FILTER);
 
@@ -116,7 +106,14 @@ export const AdminPortalProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const currentUser = users[0]; // ADM1001 is current logged-in admin
+  const currentUser = users[0] || {
+    id: 'ADM-UNKNOWN',
+    name: 'System Admin',
+    role: 'Super Admin',
+    email: 'admin@swasthyasetu.gov.in',
+    facilityCode: 'GOV-HQ',
+    createdAt: new Date().toISOString()
+  }; // Fallback placeholder until Firebase user is connected
 
   // ─── Alert Actions
 
@@ -219,10 +216,57 @@ export const AdminPortalProvider: React.FC<{ children: React.ReactNode }> = ({ c
     users,
     referrals,
     auditEvents,
-    facilities: MOCK_FACILITIES,
-    districtSummaries: MOCK_DISTRICT_SUMMARIES,
-    dashboardSummary: MOCK_DASHBOARD_SUMMARY,
-    serviceSnapshot: MOCK_SERVICE_SNAPSHOT,
+    facilities: [],
+    districtSummaries: [],
+    dashboardSummary: {
+      totalFacilities: 0,
+      facilitiesOnline: 0,
+      facilitiesWithIssues: 0,
+      appointmentsToday: 0,
+      avgWaitingMinutes: 0,
+      pendingLabOrders: 0,
+      avgLabTurnaroundHours: 0,
+      pendingReferrals: 0,
+      delayedReferrals: 0,
+      lowStockMedicines: 0,
+      outOfStockMedicines: 0,
+      prescriptionFulfilmentRate: 0,
+      appointmentsTrend: 0,
+      waitingTimeTrend: 0,
+      labTurnaroundTrend: 0,
+      referralDelayTrend: 0,
+      fulfilmentTrend: 0
+    },
+    serviceSnapshot: {
+      appointmentsToday: 0,
+      consultationsCompleted: 0,
+      currentQueueTotal: 0,
+      avgWaitingMinutes: 0,
+      doctorsAvailable: 0,
+      followupsDue: 0,
+      pendingReferrals: 0,
+      labOrdersPending: 0,
+      labSamplesCollected: 0,
+      labInProgress: 0,
+      labAwaitingVerification: 0,
+      labReportsReady: 0,
+      labAvgTurnaroundHours: 0,
+      unavailableLabTests: 0,
+      labBacklogCount: 0,
+      prescriptionsPending: 0,
+      prescriptionsFullyDispensed: 0,
+      prescriptionsPartiallyDispensed: 0,
+      reservationsPending: 0,
+      lowStockMedicines: 0,
+      outOfStockEssentials: 0,
+      nearExpiryBatches: 0,
+      avgReservationProcessingHours: 0,
+      facilitiesOnline: 0,
+      facilitiesIntermittent: 0,
+      facilitiesOffline: 0,
+      pendingSyncRecords: 0,
+      facilitiesNeedingSupport: 0,
+    },
     toasts,
     filter,
     setFilter,

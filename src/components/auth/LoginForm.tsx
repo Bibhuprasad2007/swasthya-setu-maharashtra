@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Building, ArrowRight, CheckCircle } from 'lucide-react';
 import { PORTALS } from '../../constants/portals';
-import { PortalType } from '../../types/auth';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { PasswordInput } from '../common/PasswordInput';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { ErrorAlert } from '../common/ErrorAlert';
-import { QuickDemoFill } from '../common/QuickDemoFill';
 import { PortalSelector } from './PortalSelector';
 
 export const LoginForm: React.FC = () => {
@@ -79,20 +77,6 @@ export const LoginForm: React.FC = () => {
     } catch {
       // Error handled via AuthContext
     }
-  };
-
-  const handleDemoAccountSelect = (demo: {
-    portal: PortalType;
-    identifier: string;
-    password: string;
-    facilityCode: string;
-  }) => {
-    setSelectedPortal(demo.portal);
-    setIdentifier(demo.identifier);
-    setPassword(demo.password);
-    setFacilityCode(demo.facilityCode);
-    setFieldErrors({});
-    clearError();
   };
 
   const identifierLabel = (t as any)[currentPortalConfig.identifierLabelKey] || 'Identifier ID';
@@ -272,13 +256,6 @@ export const LoginForm: React.FC = () => {
         </button>
 
       </form>
-
-      {/* Demo Credentials Helper */}
-      <QuickDemoFill
-        onSelectAccount={handleDemoAccountSelect}
-        activePortal={selectedPortal}
-      />
-
     </div>
   );
 };

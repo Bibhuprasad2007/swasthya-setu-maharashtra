@@ -4,16 +4,12 @@ import { useLanguage } from '../../context/LanguageContext';
 import { LanguageSelector } from './LanguageSelector';
 import { ThemeToggle } from './ThemeToggle';
 import { NetworkStatus } from './NetworkStatus';
-import { PrototypeBanner } from './PrototypeBanner';
 
 export const Header: React.FC = () => {
   const { t } = useLanguage();
 
   return (
     <header className="w-full sticky top-0 z-40" role="banner">
-      {/* Top prototype disclaimer strip */}
-      <PrototypeBanner />
-
       {/* Main navigation header */}
       <div className="bg-white/85 dark:bg-brand-dark-bg/85 backdrop-blur-md border-b border-slate-200/80 dark:border-brand-dark-border/80 transition-colors duration-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

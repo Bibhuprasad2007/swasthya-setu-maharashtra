@@ -16,7 +16,6 @@ import { useLabPortal } from '../../context/LabPortalContext';
 import { LabSidebar } from '../lab/LabSidebar';
 import { LanguageSelector } from '../common/LanguageSelector';
 import { ThemeToggle } from '../common/ThemeToggle';
-import { PrototypeBanner } from '../common/PrototypeBanner';
 import { ToastContainer } from '../common/ToastContainer';
 import { ToastMessage } from '../../types/doctor';
 
@@ -54,7 +53,6 @@ export const LabPortalLayout: React.FC<{ children: React.ReactNode }> = ({ child
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-brand-dark-bg text-slate-900 dark:text-brand-dark-text transition-colors duration-200">
-      <PrototypeBanner />
 
       {/* Session Timeout Warning */}
       {sessionTimeoutWarning && (

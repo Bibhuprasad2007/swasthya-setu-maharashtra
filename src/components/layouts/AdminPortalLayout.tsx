@@ -16,7 +16,6 @@ import { useAdminPortal } from '../../context/AdminPortalContext';
 import { AdminSidebar } from '../admin/AdminSidebar';
 import { LanguageSelector } from '../common/LanguageSelector';
 import { ThemeToggle } from '../common/ThemeToggle';
-import { PrototypeBanner } from '../common/PrototypeBanner';
 import { ToastContainer } from '../common/ToastContainer';
 
 const PAGE_LABELS: Record<string, string> = {
@@ -59,7 +58,6 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-brand-dark-bg text-slate-900 dark:text-brand-dark-text transition-colors duration-200">
-      <PrototypeBanner />
 
       {/* Session Timeout Warning */}
       {sessionTimeoutWarning && (
@@ -109,8 +107,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-brand-dark-muted font-medium hidden sm:block">
-                    Maharashtra Public Health Governance — SIH Prototype
-                  </p>
+                    Maharashtra Public Health Governance                  </p>
                 </div>
               </Link>
             </div>
@@ -206,8 +203,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
       <footer className="bg-white/80 dark:bg-brand-dark-surface/80 border-t border-slate-200 dark:border-brand-dark-border py-3.5 text-center text-xs text-slate-500 dark:text-brand-dark-muted mt-auto">
         <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            SwasthyaSetu Maharashtra — Government Public Health Governance Portal (SIH Prototype)
-          </span>
+            SwasthyaSetu Maharashtra — Government Public Health Governance Portal          </span>
           <span>
             Admin: <strong>{user?.name}</strong> | Scope: <strong>{user?.facilityCode}</strong>
           </span>

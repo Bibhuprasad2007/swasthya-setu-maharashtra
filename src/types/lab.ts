@@ -1,9 +1,6 @@
 /**
  * Type definitions for the Diagnostic Laboratory Portal
  * SwasthyaSetu Maharashtra - Integrated Rural Healthcare Network
- *
- * NOTE: All data types are designed for fictional demo workflows only.
- * No real patient data, Aadhaar numbers, or ABDM data is stored here.
  */
 
 // ─── Priority ────────────────────────────────────────────────────────────────

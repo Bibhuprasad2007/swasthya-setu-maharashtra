@@ -7,7 +7,7 @@ import { doc, getDoc } from 'firebase/firestore';
 const AUDIT_LOGS_KEY = 'swasthya_audit_logs';
 
 /**
- * Service to record authentication audit logs (stub for SIH demo / backend integration)
+ * Service to record authentication audit logs (stub for backend integration)
  */
 export function recordAuditLog(log: Omit<LoginAuditLog, 'timestamp'>): void {
   try {
@@ -18,7 +18,7 @@ export function recordAuditLog(log: Omit<LoginAuditLog, 'timestamp'>): void {
     };
     existing.unshift(newLog);
     sessionStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(existing.slice(0, 50)));
-    // Also log in dev console for prototype visibility
+    // Also log in dev console for visibility
     if (import.meta.env.DEV) {
       console.info('[SwasthyaSetu Audit]', newLog);
     }
@@ -54,22 +54,43 @@ export const authService = {
 
       const userData = userDocSnap.data();
 
+      const normalizePortal = (p: string = '') => {
+        const cleaned = p.trim().toLowerCase();
+        if (cleaned === 'lab') return 'laboratory';
+        return cleaned;
+      };
+
+      const userPortalNorm = normalizePortal(userData.portal);
+      const reqPortalNorm = normalizePortal(portal);
+
       // Verify portal authorization
-      if (userData.portal !== portal) {
+      if (userPortalNorm !== reqPortalNorm) {
         await signOut(auth);
         recordAuditLog({ portal, identifier, facilityCode, status: 'FAILED' });
         throw new ApiError(
-          `Access Denied: Account is authorized for ${userData.portal.toUpperCase()} portal, not ${portal.toUpperCase()}.`,
+          `Access Denied: Account is authorized for ${(userData.portal || '').trim().toUpperCase()} portal, not ${portal.toUpperCase()}.`,
           403,
           'ROLE_MISMATCH'
         );
       }
 
       // Verify facility code
-      if (userData.facilityCode?.toUpperCase() !== facilityCode.trim().toUpperCase()) {
+      const rawUserFacility = 
+        userData.facilityCode || 
+        userData.code || 
+        userData.facilityId || 
+        userData.storeCode || 
+        userData.deptCode || 
+        '';
+
+      const cleanCode = (s: string) => s.replace(/[\s\-_]/g, '').toUpperCase();
+      const userFacility = cleanCode(rawUserFacility);
+      const inputFacility = cleanCode(facilityCode);
+
+      if (userFacility && inputFacility && userFacility !== inputFacility) {
         await signOut(auth);
         recordAuditLog({ portal, identifier, facilityCode, status: 'FAILED' });
-        throw new ApiError('Invalid facility or department code for this account.', 401);
+        throw new ApiError(`Invalid facility or department code. Registered: "${rawUserFacility}"`, 401);
       }
 
       // Login success
@@ -83,6 +104,7 @@ export const authService = {
       const token = await firebaseUser.getIdToken();
 
       const userProfile: UserProfile = {
+        role: reqPortalNorm as any,
         ...userData.profile,
         uid: firebaseUser.uid,
         email: firebaseUser.email || '',
@@ -136,7 +158,11 @@ export const authService = {
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
+        const cleanedPortal = (userData.portal || '').trim().toLowerCase();
+        const role = cleanedPortal === 'lab' ? 'laboratory' : cleanedPortal;
+
         return {
+          role: role as any,
           ...userData.profile,
           uid: firebaseUser.uid,
           email: firebaseUser.email || '',

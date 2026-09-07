@@ -10,7 +10,6 @@ import {
   FlaskConical, 
   Pill, 
   ShieldCheck,
-  KeyRound
 } from 'lucide-react';
 import { PORTALS } from '../constants/portals';
 import { PortalType } from '../types/auth';
@@ -21,7 +20,7 @@ import { MedicalBackground } from '../components/common/MedicalBackground';
 import { PasswordInput } from '../components/common/PasswordInput';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorAlert } from '../components/common/ErrorAlert';
-import { MOCK_ACCOUNTS } from '../services/mockAuthData';
+
 
 export const PortalLoginPage: React.FC = () => {
   const { portalType } = useParams<{ portalType: string }>();
@@ -38,7 +37,6 @@ export const PortalLoginPage: React.FC = () => {
   }
 
   const portalConfig = PORTALS[currentPortalType];
-  const demoAccount = MOCK_ACCOUNTS.find((acc) => acc.portal === currentPortalType);
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -124,15 +122,6 @@ export const PortalLoginPage: React.FC = () => {
     }
   };
 
-  const handleFillDemo = () => {
-    if (demoAccount) {
-      setIdentifier(demoAccount.identifier);
-      setPassword(demoAccount.password);
-      setFacilityCode(demoAccount.facilityCode);
-      setFieldErrors({});
-      clearError();
-    }
-  };
 
   const portalTitle = (t as any)[portalConfig.titleKey] || currentPortalType;
   const portalDesc = (t as any)[portalConfig.descriptionKey] || '';
@@ -345,32 +334,8 @@ export const PortalLoginPage: React.FC = () => {
 
           </form>
 
-          {/* Quick Demo Credentials Button for this role */}
-          {demoAccount && (
-            <div className="mt-5 pt-4 border-t border-slate-100 dark:border-brand-dark-border/80">
-              <button
-                type="button"
-                onClick={handleFillDemo}
-                className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-brand-dark-elevated hover:bg-slate-100 dark:hover:bg-brand-dark-border/40 border border-slate-200 dark:border-brand-dark-border transition-colors text-left"
-              >
-                <div className="flex items-center gap-2">
-                  <KeyRound className="w-4 h-4 text-brand-blue-600 dark:text-brand-blue-400 flex-shrink-0" />
-                  <div>
-                    <span className="text-xs font-bold text-slate-800 dark:text-brand-dark-heading block">
-                      Auto-fill Demo Credentials
-                    </span>
-                    <span className="text-[11px] font-mono text-slate-500 dark:text-brand-dark-muted">
-                      {demoAccount.identifier} | {demoAccount.facilityCode}
-                    </span>
-                  </div>
-                </div>
-                <span className="text-xs font-bold text-brand-blue-600 dark:text-brand-blue-400">
-                  Click to Fill
-                </span>
-              </button>
-            </div>
-          )}
-
+          {/* Quick credentials button for this role */}
+          
         </div>
       </main>
 

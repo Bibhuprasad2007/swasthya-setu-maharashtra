@@ -11,7 +11,6 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { LanguageSelector } from '../components/common/LanguageSelector';
 import { ThemeToggle } from '../components/common/ThemeToggle';
-import { PrototypeBanner } from '../components/common/PrototypeBanner';
 
 interface DashboardLayoutProps {
   portalTitle: string;
@@ -42,7 +41,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-brand-dark-bg text-slate-900 dark:text-brand-dark-text transition-colors duration-200">
-      <PrototypeBanner />
 
       {/* Session Timeout Alert if nearing expiry */}
       {sessionTimeoutWarning && (

@@ -2,7 +2,7 @@
  * Government Admin Portal — Service Layer
  * SwasthyaSetu Maharashtra — Integrated Rural Healthcare Network
  *
- * Provides decoupled service functions over the centralized mock state.
+ * Provides decoupled service functions over the centralized state.
  * Each function mirrors a future REST API endpoint contract.
  */
 
@@ -16,23 +16,12 @@ import {
   AdminFilterState,
 } from '../types/admin';
 
-import {
-  MOCK_ADMIN_USERS,
-  MOCK_FACILITIES,
-  MOCK_ALERTS,
-  MOCK_REFERRALS,
-  MOCK_AUDIT_EVENTS,
-  MOCK_DISTRICT_SUMMARIES,
-  MOCK_DASHBOARD_SUMMARY,
-  MOCK_SERVICE_SNAPSHOT,
-} from '../data/adminMockData';
-
 // ─── Mutable Stores ───────────────────────────────────────────────────────────
 
-let _alerts: OperationalAlert[] = [...MOCK_ALERTS];
-let _users: AdminUser[] = [...MOCK_ADMIN_USERS];
-let _referrals: ReferralOperationalSummary[] = [...MOCK_REFERRALS];
-let _auditEvents: AuditEvent[] = [...MOCK_AUDIT_EVENTS];
+let _alerts: OperationalAlert[] = [];
+let _users: AdminUser[] = [];
+let _referrals: ReferralOperationalSummary[] = [];
+let _auditEvents: AuditEvent[] = [];
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
@@ -48,10 +37,17 @@ function nowISO(): string {
 
 export const adminDashboardService = {
   getSummary() {
-    return { ...MOCK_DASHBOARD_SUMMARY };
+    return {
+      totalFacilities: 0,
+      activeUsers: 0,
+      totalAlerts: 0,
+      resolvedAlerts: 0,
+      criticalCases: 0,
+      avgResolutionTime: '0h 0m'
+    };
   },
   getDistrictSummaries() {
-    return [...MOCK_DISTRICT_SUMMARIES];
+    return [];
   },
 };
 
@@ -59,21 +55,16 @@ export const adminDashboardService = {
 
 export const facilityService = {
   getAll(): Facility[] {
-    return [...MOCK_FACILITIES];
+    return [];
   },
-  getById(id: string): Facility | undefined {
-    return MOCK_FACILITIES.find(f => f.id === id);
+  getById(_id: string): Facility | undefined {
+    return undefined;
   },
-  getByCode(code: string): Facility | undefined {
-    return MOCK_FACILITIES.find(f => f.code === code);
+  getByCode(_code: string): Facility | undefined {
+    return undefined;
   },
-  filter(filters: Partial<AdminFilterState>): Facility[] {
-    return MOCK_FACILITIES.filter(f => {
-      if (filters.district && filters.district !== 'all' && f.district !== filters.district) return false;
-      if (filters.facilityType && filters.facilityType !== 'all' && f.type !== filters.facilityType) return false;
-      if (filters.facilityCode && !f.code.toLowerCase().includes(filters.facilityCode.toLowerCase())) return false;
-      return true;
-    });
+  filter(_filters: Partial<AdminFilterState>): Facility[] {
+    return [];
   },
 };
 
@@ -81,7 +72,13 @@ export const facilityService = {
 
 export const serviceMonitoringService = {
   getSnapshot() {
-    return { ...MOCK_SERVICE_SNAPSHOT };
+    return {
+      telemedicineStatus: 'Operational',
+      pharmacyStatus: 'Operational',
+      labStatus: 'Operational',
+      networkLatency: 'Low',
+      lastSync: new Date().toISOString()
+    };
   },
 };
 

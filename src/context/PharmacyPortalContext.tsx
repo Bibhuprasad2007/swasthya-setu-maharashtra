@@ -18,15 +18,6 @@ import {
 } from '../types/pharmacy';
 import { ToastMessage } from '../types/doctor';
 import {
-  INITIAL_PRESCRIPTIONS,
-  INITIAL_BATCHES,
-  INITIAL_RESERVATIONS,
-  INITIAL_DISPENSING_HISTORY,
-  INITIAL_STOCK_MOVEMENTS,
-  INITIAL_NOTIFICATIONS,
-  INITIAL_AUDIT_EVENTS
-} from '../data/pharmacyMockData';
-import {
   inventoryService,
   dispensingService,
   pharmacyService,
@@ -103,13 +94,13 @@ const PharmacyPortalContext = createContext<PharmacyPortalContextType | undefine
 let toastIdCounter = 1000;
 
 export const PharmacyPortalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [prescriptions, setPrescriptions] = useState<PharmacyPrescription[]>(INITIAL_PRESCRIPTIONS);
-  const [batches, setBatches] = useState<MedicineBatch[]>(INITIAL_BATCHES);
-  const [reservations, setReservations] = useState<MedicineReservation[]>(INITIAL_RESERVATIONS);
-  const [dispensingHistory, setDispensingHistory] = useState<DispensingRecord[]>(INITIAL_DISPENSING_HISTORY);
-  const [stockMovements, setStockMovements] = useState<StockMovement[]>(INITIAL_STOCK_MOVEMENTS);
-  const [notifications, setNotifications] = useState<NotificationEvent[]>(INITIAL_NOTIFICATIONS);
-  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(INITIAL_AUDIT_EVENTS);
+  const [prescriptions, setPrescriptions] = useState<PharmacyPrescription[]>([]);
+  const [batches, setBatches] = useState<MedicineBatch[]>([]);
+  const [reservations, setReservations] = useState<MedicineReservation[]>([]);
+  const [dispensingHistory, setDispensingHistory] = useState<DispensingRecord[]>([]);
+  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AuditEvent[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // ─── Toasts ─────────────────────────────────────────────────────────────

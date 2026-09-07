@@ -1,10 +1,9 @@
 /**
  * Decoupled Base API client for SwasthyaSetu Maharashtra
- * Uses environment variable VITE_API_BASE_URL (defaults to '/api' or prototype mock)
+ * Uses environment variable VITE_API_BASE_URL (defaults to '/api')
  */
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
-export const USE_MOCK_AUTH = import.meta.env.VITE_USE_MOCK_AUTH !== 'false';
 
 export class ApiError extends Error {
   public status?: number;

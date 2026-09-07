@@ -7,7 +7,6 @@ import {
   FileText,
   Clock,
   X,
-  Play
 } from 'lucide-react';
 import { DoctorPortalLayout } from '../../components/layouts/DoctorPortalLayout';
 import { EmptyState } from '../../components/common/EmptyState';
@@ -19,7 +18,6 @@ export const LabOrdersPage: React.FC = () => {
     labOrders,
     patients,
     createLabOrder,
-    updateLabOrderStatus,
     addDoctorLabInterpretation
   } = useDoctorPortal();
 
@@ -84,16 +82,6 @@ export const LabOrdersPage: React.FC = () => {
     setIsCreateModalOpen(false);
   };
 
-  const handleDemoProgress = (orderId: string, currentStatus: LabOrderItem['status']) => {
-    let nextStatus: LabOrderItem['status'] = 'processing';
-    if (currentStatus === 'ordered') nextStatus = 'accepted';
-    else if (currentStatus === 'accepted') nextStatus = 'sample_collected';
-    else if (currentStatus === 'sample_collected') nextStatus = 'processing';
-    else if (currentStatus === 'processing') nextStatus = 'report_ready';
-
-    updateLabOrderStatus(orderId, nextStatus);
-  };
-
   const getStatusBadge = (status: LabOrderItem['status']) => {
     switch (status) {
       case 'reviewed':
@@ -136,7 +124,7 @@ export const LabOrdersPage: React.FC = () => {
   return (
     <DoctorPortalLayout
       pageTitle="Diagnostic Lab Orders & Verified Reports"
-      pageSubtitle="Order pathology investigations, simulate lab processing lifecycle, and record clinical interpretations"
+      pageSubtitle="Order pathology investigations, manage lab processing lifecycle, and record clinical interpretations"
       headerAction={
         <button
           type="button"
@@ -252,17 +240,6 @@ export const LabOrdersPage: React.FC = () => {
                     View Report & Results
                   </button>
 
-                  {/* Quick Prototype Status Progression Button */}
-                  {order.status !== 'reviewed' && order.status !== 'cancelled' && (
-                    <button
-                      type="button"
-                      onClick={() => handleDemoProgress(order.id, order.status)}
-                      className="p-2 rounded-xl text-brand-blue-600 hover:bg-brand-blue-50 dark:hover:bg-brand-blue-950/40 transition-colors"
-                      title="Advance Status (Prototype Simulation)"
-                    >
-                      <Play className="w-4 h-4" />
-                    </button>
-                  )}
                 </div>
               </div>
             );

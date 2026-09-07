@@ -97,7 +97,7 @@ export const TeleconsultationPage: React.FC = () => {
       }
     >
       <div className="space-y-6">
-        {/* Active Teleconsultation Live Room Prototype */}
+        {/* Active Teleconsultation Live Room */}
         {activeCallSession ? (
           <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-2xl border border-slate-700 space-y-6 animate-fade-in">
             {/* Top Call Info Bar */}

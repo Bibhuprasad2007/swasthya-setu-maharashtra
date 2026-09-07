@@ -1,9 +1,6 @@
 /**
  * Government Admin Portal — Type Definitions
  * SwasthyaSetu Maharashtra — Integrated Rural Healthcare Network
- *
- * PROTOTYPE NOTICE: All data is fictional and for demonstration only.
- * This portal does not connect to any real government system.
  */
 
 // ─── Core Enumerations ────────────────────────────────────────────────────────
@@ -213,8 +210,6 @@ export interface ServiceSnapshot {
   doctorsAvailable: number;
   followupsDue: number;
   pendingReferrals: number;
-
-  // Lab
   labOrdersPending: number;
   labSamplesCollected: number;
   labInProgress: number;
@@ -223,7 +218,6 @@ export interface ServiceSnapshot {
   labAvgTurnaroundHours: number;
   unavailableLabTests: number;
   labBacklogCount: number;
-
   // Pharmacy
   prescriptionsPending: number;
   prescriptionsFullyDispensed: number;
@@ -233,7 +227,6 @@ export interface ServiceSnapshot {
   outOfStockEssentials: number;
   nearExpiryBatches: number;
   avgReservationProcessingHours: number;
-
   // Connectivity
   facilitiesOnline: number;
   facilitiesIntermittent: number;
