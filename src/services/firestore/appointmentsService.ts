@@ -12,7 +12,7 @@ import {
 import { db } from '../firebase';
 import { eventsAndAuditService } from './eventsAndAuditService';
 
-export type AppointmentStatus = 'REQUESTED' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+export type AppointmentStatus = 'REQUESTED' | 'SCHEDULED' | 'CONFIRMED' | 'IN_PROGRESS' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
 
 export interface AppointmentData {
   id?: string;
